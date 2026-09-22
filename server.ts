@@ -19,7 +19,7 @@ import { apiRateLimiter } from './src/middleware/rateLimiter.middleware.ts';
 import { logger } from './src/utils/logger.ts';
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Security Middlewares
 app.use(
