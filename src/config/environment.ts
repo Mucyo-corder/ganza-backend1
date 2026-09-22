@@ -20,7 +20,7 @@ export const ENV = {
   FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY
     ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
     : '',
-  FIREBASE_STORAGE_BUCKET: process.env.STORAGE_BUCKET || '',
+  FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET || '',
 
   // Security & Authentication
   JWT_SECRET: process.env.JWT_SECRET || 'woodapp-secure-jwt-secret-key-rwanda-2026',
