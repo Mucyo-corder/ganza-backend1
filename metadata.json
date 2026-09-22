@@ -1,0 +1,6 @@
+{
+  "name": "Ganza",
+  "description": "Ganza - Porogaramu y'imicungire n'ubucuruzi bw'imbaho n'inganda za carpentry mu Rwanda (Ganza Timber ERP).",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

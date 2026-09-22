@@ -1,0 +1,31 @@
+# Ganza (WoodApp) Backend - Render Deployment Specification
+# Infrastructure as Code for production deployment on Render.com
+
+services:
+  - type: web
+    name: ganza-backend
+    env: node
+    plan: starter
+    region: frankfurt # Low latency to Rwanda / East Africa
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: "https://ganza-app.web.app,https://ganza.web.app"
+      - key: APP_LANGUAGE
+        value: rw
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+

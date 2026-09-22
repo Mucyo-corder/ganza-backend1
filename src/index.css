@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+
+  /* Black & White Monochrome Palette */
+  --color-brand-black: #000000;
+  --color-brand-white: #FFFFFF;
+  --color-mono-950: #09090B;
+  --color-mono-900: #121214;
+  --color-mono-800: #18181B;
+  --color-mono-700: #27272A;
+  --color-mono-600: #3F3F46;
+  --color-mono-500: #71717A;
+  --color-mono-400: #A1A1AA;
+  --color-mono-300: #D4D4D8;
+  --color-mono-200: #E4E4E7;
+  --color-mono-100: #F4F4F5;
+  --color-mono-50: #FAFAFA;
+
+  /* Backward-compatible aliases remapped to crisp monochrome */
+  --color-walnut-950: #000000;
+  --color-walnut-900: #09090B;
+  --color-walnut-800: #18181B;
+  --color-walnut-700: #27272A;
+  --color-walnut-600: #3F3F46;
+  --color-walnut-500: #71717A;
+  --color-walnut-400: #A1A1AA;
+  --color-walnut-300: #D4D4D8;
+  --color-walnut-200: #E4E4E7;
+  --color-walnut-100: #F4F4F5;
+  --color-walnut-50: #FAFAFA;
+
+  --color-wood-gold: #000000;
+  --color-wood-bronze: #27272A;
+  --color-wood-deep: #000000;
+  --color-wood-muted: #71717A;
+
+  --color-forest-600: #18181B;
+  --color-forest-500: #27272A;
+  --color-amber-600: #52525B;
+  --color-danger-600: #000000;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  background-color: #FFFFFF;
+  color: #000000;
+}
+
+/* Minimalist Monochrome Grid overlay */
+.bg-wood-subtle {
+  background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.04) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.bg-wood-dark-pattern {
+  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.06) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Custom Scrollbar in Black & White */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #A1A1AA;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #000000;
+}

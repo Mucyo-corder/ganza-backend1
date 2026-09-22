@@ -1,0 +1,156 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper: Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Check if user belongs to the requested business tenant
+    function belongsToBusiness(businessId) {
+      return isAuthenticated() && (
+        request.auth.token.businessId == businessId ||
+        request.auth.token.role == 'owner' ||
+        request.auth.token.role == 'boss'
+      );
+    }
+
+    // Helper: Check specific roles
+    function hasRole(allowedRoles) {
+      return isAuthenticated() && request.auth.token.role in allowedRoles;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || hasRole(['owner', 'boss']));
+      allow write: if isAuthenticated() && (request.auth.uid == userId || hasRole(['owner', 'boss']));
+    }
+
+    // Businesses Collection
+    match /businesses/{businessId} {
+      allow read: if belongsToBusiness(businessId);
+      allow create: if isAuthenticated();
+      allow update: if belongsToBusiness(businessId) && hasRole(['owner', 'boss']);
+      allow delete: if false; // Businesses cannot be deleted through client SDK
+    }
+
+    // Memberships Collection
+    match /memberships/{membershipId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        belongsToBusiness(resource.data.businessId)
+      );
+      allow write: if isAuthenticated() && hasRole(['owner', 'boss']);
+    }
+
+    // Products Catalog Collection
+    match /products/{productId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow write: if belongsToBusiness(request.resource.data.businessId) &&
+                     hasRole(['owner', 'boss', 'manager']);
+    }
+
+    // Inventory Collection
+    match /inventory/{itemId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow write: if belongsToBusiness(request.resource.data.businessId) &&
+                     hasRole(['owner', 'boss', 'manager', 'accountant']);
+    }
+
+    // Stock Movements
+    match /stock_movements/{movementId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow create: if belongsToBusiness(request.resource.data.businessId);
+      allow update, delete: if false; // Stock movements are strictly immutable
+    }
+
+    // Sales Collection
+    match /sales/{saleId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow create: if belongsToBusiness(request.resource.data.businessId);
+      allow update: if belongsToBusiness(resource.data.businessId) && hasRole(['owner', 'boss', 'accountant']);
+      allow delete: if false; // Sales records cannot be erased to prevent financial manipulation
+    }
+
+    // Sale Items Collection
+    match /sale_items/{itemId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow create: if belongsToBusiness(request.resource.data.businessId);
+      allow update, delete: if false; // Sale items are immutable line records
+    }
+
+    // Purchases Collection
+    match /purchases/{purchaseId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow create: if belongsToBusiness(request.resource.data.businessId) && hasRole(['owner', 'boss', 'manager', 'accountant']);
+      allow update: if belongsToBusiness(resource.data.businessId) && hasRole(['owner', 'boss', 'accountant']);
+      allow delete: if false;
+    }
+
+    // Purchase Items Collection
+    match /purchase_items/{itemId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow create: if belongsToBusiness(request.resource.data.businessId) && hasRole(['owner', 'boss', 'manager', 'accountant']);
+      allow update, delete: if false;
+    }
+
+    // Customers Collection
+    match /customers/{customerId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow write: if belongsToBusiness(request.resource.data.businessId);
+    }
+
+    // Suppliers Collection
+    match /suppliers/{supplierId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow write: if belongsToBusiness(request.resource.data.businessId) && hasRole(['owner', 'boss', 'manager', 'accountant']);
+    }
+
+    // Payments Collection
+    match /payments/{paymentId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow create: if belongsToBusiness(request.resource.data.businessId) && hasRole(['owner', 'boss', 'manager', 'accountant']);
+      allow update, delete: if false; // Payments are immutable
+    }
+
+    // Expenses Collection
+    match /expenses/{expenseId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow create: if belongsToBusiness(request.resource.data.businessId) && hasRole(['owner', 'boss', 'manager', 'accountant']);
+      allow update: if belongsToBusiness(resource.data.businessId) && hasRole(['owner', 'boss']);
+      allow delete: if false;
+    }
+
+    // Financial Transactions (Double-Entry General Ledger)
+    match /financial_transactions/{transactionId} {
+      allow read: if belongsToBusiness(resource.data.businessId) && hasRole(['owner', 'boss', 'accountant']);
+      allow write: if false; // Only server-side Firebase Admin SDK can create ledger records
+    }
+
+    // Audit Logs (Strictly Immutable Security Records)
+    match /audit_logs/{logId} {
+      allow read: if belongsToBusiness(resource.data.businessId) && hasRole(['owner', 'boss']);
+      allow write: if false; // Only backend service can write audit logs
+    }
+
+    // Cameras & Events
+    match /cameras/{cameraId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow write: if belongsToBusiness(request.resource.data.businessId) && hasRole(['owner', 'boss', 'manager']);
+    }
+
+    match /camera_events/{eventId} {
+      allow read: if belongsToBusiness(resource.data.businessId);
+      allow create: if belongsToBusiness(request.resource.data.businessId);
+      allow update, delete: if false;
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read, update: if belongsToBusiness(resource.data.businessId);
+      allow create: if belongsToBusiness(request.resource.data.businessId);
+      allow delete: if false;
+    }
+  }
+}

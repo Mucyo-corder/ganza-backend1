@@ -1,0 +1,403 @@
+{
+  "entities": {
+    "Business": {
+      "title": "Business",
+      "description": "Timber yard or carpentry enterprise in Rwanda",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "tin": { "type": "string" },
+        "location": { "type": "string" },
+        "currency": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "ownerId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "System user account",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "fullName": { "type": "string" },
+        "phone": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "uid", "email", "fullName"]
+    },
+    "Membership": {
+      "title": "Membership",
+      "description": "User business membership and role authorization",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["owner", "boss", "manager", "accountant", "worker"] },
+        "permissions": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "businessId", "userId", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Product catalog definition",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "name": { "type": "string" },
+        "species": { "type": "string" },
+        "category": { "type": "string" },
+        "unit": { "type": "string" },
+        "buyingPrice": { "type": "number" },
+        "sellingPrice": { "type": "number" }
+      },
+      "required": ["id", "businessId", "name", "species"]
+    },
+    "Inventory": {
+      "title": "Inventory",
+      "description": "Timber stock items in yard or workshop",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "productName": { "type": "string" },
+        "species": { "type": "string" },
+        "dimensions": { "type": "object" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "buyingPrice": { "type": "number" },
+        "sellingPrice": { "type": "number" },
+        "totalValue": { "type": "number" },
+        "status": { "type": "string", "enum": ["in_stock", "low_stock", "out_of_stock"] },
+        "minimumStock": { "type": "number" },
+        "location": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "businessId", "species", "quantity", "sellingPrice"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Timber client with purchase and debt ledger balance",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "totalPurchases": { "type": "number" },
+        "totalPaid": { "type": "number" },
+        "outstandingBalance": { "type": "number" },
+        "status": { "type": "string", "enum": ["paid", "outstanding"] }
+      },
+      "required": ["id", "businessId", "name", "phone"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Log and timber supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "speciesSupplied": { "type": "array" },
+        "totalSupplied": { "type": "number" },
+        "totalPaid": { "type": "number" },
+        "outstandingBalance": { "type": "number" }
+      },
+      "required": ["id", "businessId", "name", "phone"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Sale transaction record with authoritative backend calculations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "total": { "type": "number" },
+        "totalCost": { "type": "number" },
+        "profit": { "type": "number" },
+        "amountPaid": { "type": "number" },
+        "amountDue": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["paid", "partially_paid", "unpaid"] },
+        "saleDate": { "type": "string" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["id", "businessId", "customerId", "total", "profit", "paymentStatus"]
+    },
+    "SaleItem": {
+      "title": "SaleItem",
+      "description": "Line item for a sale transaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "saleId": { "type": "string" },
+        "inventoryId": { "type": "string" },
+        "productName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "costPerUnit": { "type": "number" },
+        "totalCost": { "type": "number" }
+      },
+      "required": ["id", "businessId", "saleId", "quantity", "unitPrice"]
+    },
+    "Purchase": {
+      "title": "Purchase",
+      "description": "Timber procurement from supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "total": { "type": "number" },
+        "amountPaid": { "type": "number" },
+        "amountDue": { "type": "number" },
+        "status": { "type": "string", "enum": ["completed", "pending", "received"] },
+        "purchaseDate": { "type": "string" }
+      },
+      "required": ["id", "businessId", "supplierId", "total"]
+    },
+    "PurchaseItem": {
+      "title": "PurchaseItem",
+      "description": "Line item for timber procurement",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "purchaseId": { "type": "string" },
+        "species": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unitCost": { "type": "number" },
+        "totalCost": { "type": "number" }
+      },
+      "required": ["id", "businessId", "purchaseId", "quantity", "unitCost"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Debt settlement or incoming/outgoing cash transaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "type": { "type": "string", "enum": ["customer_payment", "supplier_payment"] },
+        "entityId": { "type": "string" },
+        "entityName": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string", "enum": ["cash", "mobile_money", "bank_transfer", "cheque"] },
+        "date": { "type": "string" },
+        "recordedBy": { "type": "string" }
+      },
+      "required": ["id", "businessId", "type", "entityId", "amount", "method"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Operational workshop or yard overhead expense",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "category": { "type": "string", "enum": ["rent", "labor", "transport", "electricity", "tax", "equipment", "other"] },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "paidTo": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "date": { "type": "string" },
+        "recordedBy": { "type": "string" }
+      },
+      "required": ["id", "businessId", "category", "amount", "description"]
+    },
+    "StockMovement": {
+      "title": "StockMovement",
+      "description": "Immutable stock audit log of item inflows and outflows",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "inventoryId": { "type": "string" },
+        "previousQuantity": { "type": "number" },
+        "quantityChange": { "type": "number" },
+        "newQuantity": { "type": "number" },
+        "type": { "type": "string", "enum": ["sale", "purchase", "adjustment", "loss", "transfer"] },
+        "reason": { "type": "string" },
+        "recordedBy": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "businessId", "inventoryId", "previousQuantity", "newQuantity", "type"]
+    },
+    "FinancialTransaction": {
+      "title": "FinancialTransaction",
+      "description": "Authoritative general ledger transaction entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "type": { "type": "string", "enum": ["debit", "credit"] },
+        "account": { "type": "string" },
+        "amount": { "type": "number" },
+        "referenceType": { "type": "string" },
+        "referenceId": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "businessId", "type", "account", "amount"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app alert for debt, low stock, or sales milestones",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "businessId", "title", "message"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable security and accounting audit log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "userId": { "type": "string" },
+        "action": { "type": "string" },
+        "entityType": { "type": "string" },
+        "entityId": { "type": "string" },
+        "before": { "type": "object" },
+        "after": { "type": "object" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "businessId", "userId", "action", "entityType", "entityId"]
+    },
+    "Camera": {
+      "title": "Camera",
+      "description": "Yard security or timber stack surveillance camera",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "name": { "type": "string" },
+        "location": { "type": "string" },
+        "streamUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["online", "offline", "warning"] }
+      },
+      "required": ["id", "businessId", "name"]
+    },
+    "CameraEvent": {
+      "title": "CameraEvent",
+      "description": "Security or timber loading event detected at yard",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "cameraId": { "type": "string" },
+        "cameraName": { "type": "string" },
+        "eventType": { "type": "string" },
+        "title": { "type": "string" },
+        "snapshotUrl": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "businessId", "cameraId", "eventType", "title"]
+    }
+  },
+  "firestore": {
+    "/businesses/{businessId}": {
+      "schema": "Business",
+      "description": "Registered timber enterprise profile and metadata"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/memberships/{membershipId}": {
+      "schema": "Membership",
+      "description": "Role-based business tenant permissions mapping"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Standard timber products definition"
+    },
+    "/inventory/{inventoryId}": {
+      "schema": "Inventory",
+      "description": "Current active stock pieces in yard"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customers and ongoing credit/debt balances"
+    },
+    "/suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Timber log suppliers"
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Completed and credit sales records"
+    },
+    "/sale_items/{saleItemId}": {
+      "schema": "SaleItem",
+      "description": "Individual items contained in sales transactions"
+    },
+    "/purchases/{purchaseId}": {
+      "schema": "Purchase",
+      "description": "Inbound wood purchases"
+    },
+    "/purchase_items/{purchaseItemId}": {
+      "schema": "PurchaseItem",
+      "description": "Individual line items for purchases"
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Cash/MoMo debt and purchase settlements"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Operational overhead expenses"
+    },
+    "/stock_movements/{movementId}": {
+      "schema": "StockMovement",
+      "description": "Immutable timber quantity movement audits"
+    },
+    "/financial_transactions/{transactionId}": {
+      "schema": "FinancialTransaction",
+      "description": "General ledger double-entry bookkeeping transactions"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "User notifications and alerts"
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "System security and action audit trail"
+    },
+    "/cameras/{cameraId}": {
+      "schema": "Camera",
+      "description": "Surveillance camera integrations"
+    },
+    "/camera_events/{eventId}": {
+      "schema": "CameraEvent",
+      "description": "Surveillance events and timber loading logs"
+    }
+  }
+}
