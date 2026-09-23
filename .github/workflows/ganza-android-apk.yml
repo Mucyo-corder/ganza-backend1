@@ -43,13 +43,13 @@ jobs:
           NDK_VERSION="27.1.12297006"
           NDK_DIR="$SDK_ROOT/ndk/$NDK_VERSION"
 
-          yes | sdkmanager --sdk_root="$SDK_ROOT"             "platforms;android-36"             "build-tools;36.0.0"             "cmake;3.22.1"
+          sdkmanager --sdk_root="$SDK_ROOT"             "platforms;android-36"             "build-tools;36.0.0"             "cmake;3.22.1"
 
           for attempt in 1 2 3 4; do
             echo "Installing NDK $NDK_VERSION (attempt $attempt/4)..."
             rm -rf "$NDK_DIR" "$SDK_ROOT/.temp"
 
-            if yes | sdkmanager --sdk_root="$SDK_ROOT" "ndk;$NDK_VERSION"; then
+            if sdkmanager --sdk_root="$SDK_ROOT" "ndk;$NDK_VERSION"; then
               if [ -f "$NDK_DIR/source.properties" ]; then
                 echo "NDK $NDK_VERSION installed successfully."
                 break
