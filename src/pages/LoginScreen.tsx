@@ -10,10 +10,10 @@ import { GanzaLogo } from '../components/brand/WoodAppLogo.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useToast } from '../context/ToastContext.tsx';
-import { Mail, Lock, ArrowRight, Sparkles, Building2, User, Phone } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Building2, User, Phone } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
-  const { login, register, useDemoAccount, loading } = useAuth();
+  const { login, register, loading } = useAuth();
   const { showToast } = useToast();
 
   const [isRegister, setIsRegister] = useState(false);
@@ -180,15 +180,8 @@ export const LoginScreen: React.FC = () => {
             </Button>
           </form>
 
-          {/* Quick Demo Preview Bypass */}
-          <div className="mt-5 pt-5 border-t border-zinc-200 dark:border-zinc-800">
-            <button
-              onClick={useDemoAccount}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 text-xs sm:text-sm font-bold border border-zinc-200 dark:border-zinc-800 transition-all active:scale-95"
-            >
-              <Sparkles className="w-4 h-4 text-black dark:text-white" />
-              <span>Injira ako kanya (Demo Yard Kigali)</span>
-            </button>
+          <div className="mt-5 pt-5 border-t border-zinc-200 dark:border-zinc-800 text-center text-xs text-zinc-500 dark:text-zinc-400">
+            Ganza ikoresha Firebase Authentication n’api ya backend mu buryo bw’ukuri.
           </div>
         </div>
 

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDisplayName</key><string>GANZA</string>
+  <key>CFBundleIdentifier</key><string>com.ganza.app</string>
+  <key>CFBundleName</key><string>Ganza</string>
+  <key>CFBundleVersion</key><string>1.0.0</string>
+  <key>CFBundleShortVersionString</key><string>1.0.0</string>
+  <key>NSCameraUsageDescription</key><string>GANZA needs camera access to scan wooden boards. Shyira imbaho zigaragara neza muri camera.</string>
+  <key>NSPhotoLibraryUsageDescription</key><string>GANZA needs photo library access to pick board images for detection.</string>
+  <key>NSMicrophoneUsageDescription</key><string>Microphone not actively used.</string>
+  <key>NSLocationWhenInUseUsageDescription</key><string>Optional for business location.</string>
+  <key>UILaunchStoryboardName</key><string>LaunchScreen</string>
+  <key>UIRequiredDeviceCapabilities</key><array><string>armv7</string></array>
+  <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string></array>
+</dict>
+</plist>

@@ -14,7 +14,8 @@ import {
   createUserWithEmailAndPassword, 
   signOut as fbSignOut, 
   onAuthStateChanged, 
-  User as FirebaseUser 
+  User as FirebaseUser,
+  getIdToken,
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -45,6 +46,20 @@ export const getFirebaseAuth = (): Auth | null => {
   }
   return auth;
 };
+
+export async function getCurrentFirebaseIdToken(): Promise<string | null> {
+  const currentAuth = getFirebaseAuth();
+  if (!currentAuth) {
+    return null;
+  }
+
+  const user = currentAuth.currentUser;
+  if (!user) {
+    return null;
+  }
+
+  return user.getIdToken().catch(() => null);
+}
 
 export { 
   signInWithEmailAndPassword, 

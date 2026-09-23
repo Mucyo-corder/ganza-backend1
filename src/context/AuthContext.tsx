@@ -25,6 +25,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(() => {
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+
     const saved = localStorage.getItem('woodapp_user');
     if (saved) {
       try {
@@ -33,8 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
     }
-    // Default to initial authorized user for smooth preview experience
-    return INITIAL_USER;
+    return null;
   });
 
   const [loading, setLoading] = useState(false);
@@ -51,17 +54,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string = 'password123'): Promise<boolean> => {
     setLoading(true);
     try {
-      // 1. Try Firebase Auth if configured
       const fbAuth = getFirebaseAuth();
       if (fbAuth) {
         try {
-          await signInWithEmailAndPassword(fbAuth, email, password);
-        } catch (e) {
-          console.warn('Firebase login attempt fallback:', e);
+          const credential = await signInWithEmailAndPassword(fbAuth, email, password);
+          const firebaseToken = await credential.user.getIdToken();
+          api.setToken(firebaseToken);
+        } catch (firebaseError) {
+          console.warn('Firebase authentication failed:', firebaseError);
+          throw new Error('Firebase login failed. Please verify your credentials.');
         }
       }
 
-      // 2. Try WoodApp Backend API
       try {
         const res = await api.login({ email, password });
         if (res.token && res.user) {
@@ -70,17 +74,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return true;
         }
       } catch (backendErr) {
-        console.warn('Backend API login offline/fallback:', backendErr);
+        console.warn('Backend API login failed:', backendErr);
+        throw backendErr;
       }
 
-      // 3. Fallback Local Session
-      const loggedUser: UserProfile = {
-        ...INITIAL_USER,
-        email: email || INITIAL_USER.email,
-      };
-      api.setToken('local_token_jwt_' + Date.now());
-      setUser(loggedUser);
-      return true;
+      return false;
     } finally {
       setLoading(false);
     }
@@ -95,29 +93,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }): Promise<boolean> => {
     setLoading(true);
     try {
-      try {
-        const res = await api.register(data);
-        if (res.token && res.user) {
-          api.setToken(res.token);
-          setUser(res.user);
-          return true;
-        }
-      } catch (err) {
-        console.warn('Backend register fallback:', err);
+      const res = await api.register(data);
+      if (res.token && res.user) {
+        api.setToken(res.token);
+        setUser(res.user);
+        return true;
       }
-
-      const newUser: UserProfile = {
-        id: 'user_' + Date.now(),
-        email: data.email,
-        fullName: data.fullName,
-        phone: data.phone,
-        role: 'owner',
-        businessId: 'biz_' + Date.now(),
-        businessName: data.businessName,
-      };
-      api.setToken('local_token_jwt_' + Date.now());
-      setUser(newUser);
-      return true;
+      return false;
     } finally {
       setLoading(false);
     }
@@ -137,9 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const useDemoAccount = () => {
-    setUser(INITIAL_USER);
-    api.setToken('demo_token');
-    api.setBusinessId(INITIAL_USER.businessId);
+    console.warn('Demo bypass is disabled in production GANZA mode. Use the real Firebase authentication flow.');
   };
 
   return (

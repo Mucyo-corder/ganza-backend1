@@ -2,8 +2,8 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  * 
- * WoodApp Master API Client Service
- * Configured with dynamic VITE_API_URL and seamless fallback adapter.
+ * GANZA Master API Client Service
+ * Uses the shared backend base URL from EXPO_PUBLIC_API_URL or VITE_API_URL.
  */
 
 import {
@@ -21,26 +21,35 @@ import {
   NotificationItem,
   UserProfile,
 } from '../types/frontend.ts';
+import { getCurrentFirebaseIdToken } from './firebaseClient.ts';
 
-// Dynamic API Base URL from environment variable
-export const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
+// Shared API base URL for web and Expo-style builds.
+const rawApiUrl =
+  (import.meta.env.EXPO_PUBLIC_API_URL || import.meta.env.VITE_API_URL || 'https://ganza-backend1.onrender.com')
+    .replace(/\/+$/, '');
+
+export const API_BASE_URL = rawApiUrl;
 
 class ApiClient {
-  private token: string | null = localStorage.getItem('woodapp_token');
-  private businessId: string = localStorage.getItem('woodapp_business_id') || 'biz_wood_kigali_01';
+  private token: string | null = typeof localStorage !== 'undefined' ? localStorage.getItem('woodapp_token') : null;
+  private businessId: string = typeof localStorage !== 'undefined' ? localStorage.getItem('woodapp_business_id') || 'ganza_business_default' : 'ganza_business_default';
 
   public setToken(token: string | null) {
     this.token = token;
-    if (token) {
-      localStorage.setItem('woodapp_token', token);
-    } else {
-      localStorage.removeItem('woodapp_token');
+    if (typeof localStorage !== 'undefined') {
+      if (token) {
+        localStorage.setItem('woodapp_token', token);
+      } else {
+        localStorage.removeItem('woodapp_token');
+      }
     }
   }
 
   public setBusinessId(id: string) {
     this.businessId = id;
-    localStorage.setItem('woodapp_business_id', id);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('woodapp_business_id', id);
+    }
   }
 
   public getBusinessId(): string {
@@ -48,13 +57,19 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const firebaseToken = await getCurrentFirebaseIdToken();
+    if (firebaseToken) {
+      this.token = firebaseToken;
+    }
+
     const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const existingHeaders = (options.headers ?? {}) as Record<string, string>;
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'x-business-id': this.businessId,
-      ...(options.headers as Record<string, string>),
+      ...existingHeaders,
     };
 
     if (this.token) {
@@ -89,21 +104,21 @@ class ApiClient {
   // AUTHENTICATION
   // ============================================
   async login(credentials: { email?: string; phone?: string; password?: string }): Promise<{ token: string; user: UserProfile }> {
-    return this.request('/auth/login', {
+    return this.request('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
   }
 
   async register(data: { email: string; password?: string; fullName: string; phone: string; businessName: string }): Promise<{ token: string; user: UserProfile }> {
-    return this.request('/auth/register', {
+    return this.request('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async getMe(): Promise<{ user: UserProfile }> {
-    return this.request('/auth/me');
+    return this.request('/api/auth/me');
   }
 
   // ============================================
