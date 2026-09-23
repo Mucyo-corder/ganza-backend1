@@ -191,7 +191,7 @@ export default function SalesScreen({navigation}: {navigation: {navigate: (s: st
             </TouchableOpacity>
             <View style={styles.qtyInputWrap}>
               <TextInput style={styles.qtyInput} value={quantity} onChangeText={setQuantity} keyboardType={Platform.OS === 'web' ? 'default' : 'numeric'} placeholder="0" placeholderTextColor="#5E728C" />
-              <Text style={styles.qtySub}>{selectedInventoryItem ? `${selectedInventoryItem.quantity} available` : 'Hitamo}</Text>
+              <Text style={styles.qtySub}>{selectedInventoryItem ? `${selectedInventoryItem.quantity} available` : 'Hitamo'}</Text>
             </View>
             <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnPrimary]} onPress={() => setQuantity(String(qtyNum + 1))} activeOpacity={0.85}>
               <LinearGradient colors={['#60A5FA', '#3B82F6'] as unknown as string[]} style={StyleSheet.absoluteFill} />
