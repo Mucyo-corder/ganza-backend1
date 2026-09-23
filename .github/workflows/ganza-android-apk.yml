@@ -48,10 +48,6 @@ jobs:
           echo "sdk.dir=${ANDROID_SDK_ROOT:-$ANDROID_HOME}" > mobile/android/local.properties
           chmod +x mobile/android/gradlew
 
-      - name: Generate autolinking
-        working-directory: mobile/android
-        run: ./gradlew :app:generateAutolinkingPackageList --no-daemon --max-workers=2
-
       - name: Build GANZA Release APK
         working-directory: mobile/android
         env:
