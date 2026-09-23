@@ -1,14 +1,18 @@
 import React, {useState, useEffect, useCallback} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, TextInput, Alert, Platform} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import {useFocusEffect} from '@react-navigation/native';
 import {useAuth} from '../../hooks/useAuth';
 import {useLocalization} from '../../localization/LocalizationContext';
 import {firebaseService} from '../../services/FirebaseService';
-import {Button} from '../../components/common/Button';
-import {Card} from '../../components/common/Card';
 import {formatRWF, calculateTotal} from '../../utils/formatters';
-import {COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS} from '../../constants/theme';
+import {COLORS, SPACING, FONT_SIZES, BORDER_RADIUS} from '../../constants/theme';
 import {SaleItem, InventoryItem} from '../../types';
+import {GanzaHeader} from '../../components/premium/GanzaHeader';
+import {AmbientBackground} from '../../components/premium/AmbientBackground';
+import {GlassCard} from '../../components/premium/GlassCard';
+import {PremiumButton} from '../../components/premium/PremiumButton';
+import {StatusPill} from '../../components/premium/StatusPill';
 
 export default function SalesScreen({navigation}: {navigation: {navigate: (s: string, p?: unknown) => void}}) {
   const {t} = useLocalization();
@@ -46,7 +50,7 @@ export default function SalesScreen({navigation}: {navigation: {navigate: (s: st
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData])
+    }, [loadData]),
   );
 
   const selectedInventoryItem = inventory.find(i => i.id === selectedItem);
@@ -72,7 +76,6 @@ export default function SalesScreen({navigation}: {navigation: {navigate: (s: st
       Alert.alert(t('error'), `Stock ihari: ${selectedInventoryItem.quantity} – ntiwahagurisha birenze`);
       return;
     }
-    // Confirm dialog – inventory only reduced AFTER confirmed sale
     Alert.alert(
       t('saleTotal'),
       `${selectedInventoryItem.name}\n${qty} × ${formatRWF(selectedInventoryItem.unitPrice)} = ${formatRWF(totalValue)}\n\n${t('customer')}: ${customerName}\nEmeza igurisha?`,
@@ -100,7 +103,6 @@ export default function SalesScreen({navigation}: {navigation: {navigate: (s: st
                 createdAt: Date.now(),
               };
               await firebaseService.saveSale(sale);
-              // Only now decrement inventory (atomic, never before confirmation)
               const updatedItem = {
                 ...selectedInventoryItem,
                 quantity: selectedInventoryItem.quantity - qty,
@@ -122,194 +124,209 @@ export default function SalesScreen({navigation}: {navigation: {navigate: (s: st
             }
           },
         },
-      ]
+      ],
     );
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: SPACING.xl}}>
-      <Text style={styles.title}>{t('sales')}</Text>
+    <AmbientBackground>
+      <GanzaHeader variant="compact" onNotificationPress={() => navigation.navigate('Notifications')} onProfilePress={() => navigation.navigate('Profile')} />
+      <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 100}} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>{t('sales')}</Text>
+        <Text style={styles.subtitle}>Gurisha • AI igakurikirana stock • Kinyarwanda-first</Text>
 
-      <Card>
-        <Text style={styles.sectionTitle}>{t('inventory')} – hitamo</Text>
-        {inventory.filter(i => i.quantity > 0).length === 0 ? (
-          <Text style={styles.empty}>{t('noResult')} – nta stock ihari</Text>
-        ) : (
-          <FlatList
-            data={inventory.filter(i => i.quantity > 0)}
-            scrollEnabled={false}
-            renderItem={({item}) => (
-              <TouchableOpacity
-                style={[styles.itemRow, selectedItem === item.id && styles.selectedItem]}
-                onPress={() => setSelectedItem(item.id)}
-                activeOpacity={0.85}
-              >
-                <View>
-                  <Text style={styles.itemName}>{item.name}</Text>
-                  <Text style={styles.itemStock}>{item.quantity} pcs • {formatRWF(item.unitPrice)}/pc</Text>
-                </View>
-                <Text style={styles.itemTotal}>{formatRWF(item.quantity * item.unitPrice)}</Text>
-              </TouchableOpacity>
-            )}
-            keyExtractor={item => item.id}
-          />
-        )}
+        <GlassCard title="Hitamo igicuruzwa" subtitle="Ibihari muri stock" icon="⬡">
+          {inventory.filter(i => i.quantity > 0).length === 0 ? (
+            <View style={styles.emptyBox}>
+              <View style={styles.emptyIconBox}><Text style={styles.emptyIcon}>⬢</Text></View>
+              <Text style={styles.empty}>{t('noResult')} – nta stock ihari</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={inventory.filter(i => i.quantity > 0)}
+              scrollEnabled={false}
+              renderItem={({item}) => (
+                <TouchableOpacity
+                  style={[styles.itemRow, selectedItem === item.id && styles.selectedItem]}
+                  onPress={() => setSelectedItem(item.id)}
+                  activeOpacity={0.88}
+                >
+                  {selectedItem === item.id && <LinearGradient colors={['rgba(59,130,246,0.08)', 'rgba(255,255,255,0.02)'] as unknown as string[]} style={StyleSheet.absoluteFill} />}
+                  <View style={styles.itemLeft}>
+                    <View style={[styles.itemIconBox, selectedItem === item.id && styles.itemIconActive]}><Text style={styles.itemIcon}>⬢</Text></View>
+                    <View>
+                      <Text style={styles.itemName}>{item.name}</Text>
+                      <Text style={styles.itemStock}>{item.quantity} pcs • {formatRWF(item.unitPrice)}/pc</Text>
+                    </View>
+                  </View>
+                  <View style={styles.itemRight}>
+                    <Text style={styles.itemTotal}>{formatRWF(item.quantity * item.unitPrice)}</Text>
+                    {selectedItem === item.id && <View style={styles.selectedDot} />}
+                  </View>
+                </TouchableOpacity>
+              )}
+              keyExtractor={item => item.id}
+            />
+          )}
 
-        <Text style={styles.sectionTitle}>{t('customer')}</Text>
-        <TextInput
-          style={styles.input}
-          value={customerName}
-          onChangeText={setCustomerName}
-          placeholder={t('fullName')}
-          placeholderTextColor={COLORS.textMuted}
-        />
-        <TextInput
-          style={[styles.input, {marginTop: SPACING.sm}]}
-          value={customerPhone}
-          onChangeText={setCustomerPhone}
-          placeholder={t('phone')}
-          placeholderTextColor={COLORS.textMuted}
-          keyboardType="phone-pad"
-        />
-
-        <Text style={styles.sectionTitle}>Umubare</Text>
-        <View style={styles.qtyRow}>
-          <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(String(Math.max(0, qtyNum - 1)))}>
-            <Text style={styles.qtyBtnText}>−</Text>
-          </TouchableOpacity>
-          <TextInput
-            style={styles.qtyInput}
-            value={quantity}
-            onChangeText={setQuantity}
-            keyboardType={Platform.OS === 'web' ? 'default' : 'numeric'}
-            placeholder="0"
-            placeholderTextColor={COLORS.textMuted}
-          />
-          <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(String(qtyNum + 1))}>
-            <Text style={styles.qtyBtnText}>＋</Text>
-          </TouchableOpacity>
-        </View>
-        {selectedInventoryItem && qtyNum > selectedInventoryItem.quantity && (
-          <Text style={styles.errorText}>Stock ihari: {selectedInventoryItem.quantity}</Text>
-        )}
-
-        <Text style={styles.sectionTitle}>Ubwishyu</Text>
-        <View style={styles.payRow}>
-          {(['cash', 'momo', 'bank'] as const).map(m => (
-            <TouchableOpacity key={m} style={[styles.payChip, paymentMethod === m && styles.payChipActive]} onPress={() => setPaymentMethod(m)}>
-              <Text style={[styles.payText, paymentMethod === m && styles.payTextActive]}>{m === 'cash' ? 'Cash' : m === 'momo' ? 'MoMo' : 'Bank'}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {selectedInventoryItem ? (
-          <View style={styles.summary}>
-            <Text style={styles.summaryLine}>{qtyNum} × {formatRWF(selectedInventoryItem.unitPrice)}</Text>
-            <Text style={styles.summaryTotal}>{formatRWF(totalValue)}</Text>
+          <Text style={styles.sectionTitle}>{t('customer')}</Text>
+          <View style={styles.inputWrap}>
+            <Text style={styles.inputIcon}>◈</Text>
+            <TextInput style={styles.input} value={customerName} onChangeText={setCustomerName} placeholder={t('fullName')} placeholderTextColor="#5E728C" />
           </View>
-        ) : null}
+          <View style={[styles.inputWrap, {marginTop: 8}]}>
+            <Text style={styles.inputIcon}>⬡</Text>
+            <TextInput style={styles.input} value={customerPhone} onChangeText={setCustomerPhone} placeholder={t('phone')} placeholderTextColor="#5E728C" keyboardType="phone-pad" />
+          </View>
 
-        <Button title={t('submit')} onPress={processSale} variant="primary" size="lg" loading={submitting} disabled={!canSubmit} style={styles.submitButton} />
-        {!canSubmit && <Text style={styles.hint}>Uzuza: igicuruzwa, umubare (&gt;0, ≤ stock), izina ry&apos;umukiriya</Text>}
-      </Card>
-
-      <Text style={styles.historyTitle}>{t('recentTransactions')}</Text>
-      {loading ? (
-        <Text style={styles.empty}>{t('loading')}</Text>
-      ) : sales.length === 0 ? (
-        <Text style={styles.empty}>{t('noResult')}</Text>
-      ) : (
-        sales
-          .slice()
-          .sort((a, b) => b.createdAt - a.createdAt)
-          .slice(0, 20)
-          .map(sale => (
-            <TouchableOpacity key={sale.id} style={styles.saleItem} onPress={() => navigation.navigate('SaleDetail', {sale})}>
-              <View>
-                <Text style={styles.saleName}>{sale.itemName}</Text>
-                <Text style={styles.saleMeta}>{sale.customerName} • {sale.quantity} pcs • {new Date(sale.createdAt).toLocaleDateString('rw-RW')}</Text>
-              </View>
-              <View style={{alignItems: 'flex-end'}}>
-                <Text style={styles.saleAmount}>{formatRWF(sale.totalValue)}</Text>
-                <Text style={[styles.saleStatus, sale.status === 'confirmed' && styles.saleConfirmed]}>{sale.status}</Text>
-              </View>
+          <Text style={styles.sectionTitle}>Umubare</Text>
+          <View style={styles.qtyRow}>
+            <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(String(Math.max(0, qtyNum - 1)))} activeOpacity={0.85}>
+              <Text style={styles.qtyBtnText}>−</Text>
             </TouchableOpacity>
-          ))
-      )}
-    </ScrollView>
+            <View style={styles.qtyInputWrap}>
+              <TextInput style={styles.qtyInput} value={quantity} onChangeText={setQuantity} keyboardType={Platform.OS === 'web' ? 'default' : 'numeric'} placeholder="0" placeholderTextColor="#5E728C" />
+              <Text style={styles.qtySub}>{selectedInventoryItem ? `${selectedInventoryItem.quantity} available` : 'Hitamo'}</Text>
+            </View>
+            <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnPrimary]} onPress={() => setQuantity(String(qtyNum + 1))} activeOpacity={0.85}>
+              <LinearGradient colors={['#60A5FA', '#3B82F6'] as unknown as string[]} style={StyleSheet.absoluteFill} />
+              <Text style={[styles.qtyBtnText, {color: '#fff'}]}>＋</Text>
+            </TouchableOpacity>
+          </View>
+          {selectedInventoryItem && qtyNum > selectedInventoryItem.quantity && <Text style={styles.errorText}>Stock ihari: {selectedInventoryItem.quantity}</Text>}
+
+          <Text style={styles.sectionTitle}>Ubwishyu</Text>
+          <View style={styles.payRow}>
+            {(['cash', 'momo', 'bank'] as const).map(m => (
+              <TouchableOpacity key={m} style={[styles.payChip, paymentMethod === m && styles.payChipActive]} onPress={() => setPaymentMethod(m)} activeOpacity={0.85}>
+                {paymentMethod === m && <LinearGradient colors={['#60A5FA', '#3B82F6'] as unknown as string[]} style={StyleSheet.absoluteFill} />}
+                <Text style={[styles.payText, paymentMethod === m && styles.payTextActive]}>{m === 'cash' ? 'Cash' : m === 'momo' ? 'MoMo' : 'Bank'}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {selectedInventoryItem ? (
+            <View style={styles.summary}>
+              <LinearGradient colors={['rgba(59,130,246,0.10)', 'rgba(255,255,255,0.03)'] as unknown as string[]} style={StyleSheet.absoluteFill} />
+              <View>
+                <Text style={styles.summaryLabel}>{qtyNum} × {formatRWF(selectedInventoryItem.unitPrice)}</Text>
+                <Text style={styles.summaryHint}>AI calculated • Precise</Text>
+              </View>
+              <Text style={styles.summaryTotal}>{formatRWF(totalValue)}</Text>
+            </View>
+          ) : null}
+
+          <PremiumButton title={t('submit')} onPress={processSale} loading={submitting} disabled={!canSubmit} style={styles.submitButton} size="lg" />
+          {!canSubmit && <Text style={styles.hint}>Uzuza: igicuruzwa, umubare (&gt;0, ≤ stock), izina ry'umukiriya</Text>}
+        </GlassCard>
+
+        <View style={styles.historyHeader}>
+          <Text style={styles.historyTitle}>{t('recentTransactions')}</Text>
+          <StatusPill status="idle" label={`${sales.length} sales`} />
+        </View>
+        {loading ? (
+          <Text style={styles.empty}>{t('loading')}</Text>
+        ) : sales.length === 0 ? (
+          <GlassCard padding="lg">
+            <Text style={styles.empty}>Nta gurisha riraba • AI izabikurikirana</Text>
+          </GlassCard>
+        ) : (
+          sales
+            .slice()
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .slice(0, 20)
+            .map(sale => (
+              <TouchableOpacity key={sale.id} style={styles.saleItem} onPress={() => navigation.navigate('SaleDetail', {sale})} activeOpacity={0.85}>
+                <View style={styles.saleIconBox}><Text style={styles.saleIcon}>◆</Text></View>
+                <View style={{flex: 1}}>
+                  <Text style={styles.saleName}>{sale.itemName}</Text>
+                  <Text style={styles.saleMeta}>{sale.customerName} • {sale.quantity} pcs • {new Date(sale.createdAt).toLocaleDateString('rw-RW')}</Text>
+                </View>
+                <View style={{alignItems: 'flex-end'}}>
+                  <Text style={styles.saleAmount}>{formatRWF(sale.totalValue)}</Text>
+                  <View style={[styles.saleStatusPill, sale.status === 'confirmed' && styles.saleStatusConfirmed]}><Text style={[styles.saleStatusText, sale.status === 'confirmed' && styles.saleStatusTextConfirmed]}>{sale.status}</Text></View>
+                </View>
+              </TouchableOpacity>
+            ))
+        )}
+      </ScrollView>
+    </AmbientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: COLORS.background, padding: SPACING.md},
-  title: {fontSize: FONT_SIZES.xl, color: COLORS.cream, fontWeight: '800', marginBottom: SPACING.lg},
-  sectionTitle: {fontSize: FONT_SIZES.sm, color: COLORS.textSecondary, fontWeight: '700', marginBottom: SPACING.sm, marginTop: SPACING.md, textTransform: 'uppercase', letterSpacing: 0.6},
-  empty: {color: COLORS.textMuted, textAlign: 'center', padding: SPACING.md},
+  container: {flex: 1, padding: SPACING.md, paddingTop: 12},
+  title: {fontSize: 26, fontWeight: '900', color: '#F1F6FF', letterSpacing: -0.6},
+  subtitle: {fontSize: 12, color: '#8FA2BB', marginTop: 4, marginBottom: 14},
+  sectionTitle: {fontSize: 10, color: '#8FA2BB', fontWeight: '700', marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.7},
+  empty: {color: '#8FA2BB', textAlign: 'center', padding: 12, fontSize: 12},
+  emptyBox: {alignItems: 'center', paddingVertical: 16},
+  emptyIconBox: {width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center', marginBottom: 8},
+  emptyIcon: {fontSize: 16, color: '#6B84A0'},
   itemRow: {
-    padding: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.md,
-    marginBottom: SPACING.sm,
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 14,
+    marginBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.06)',
+    overflow: 'hidden',
+    position: 'relative',
   },
-  selectedItem: {borderColor: COLORS.gold, backgroundColor: '#3D3520'},
-  itemName: {color: COLORS.text, fontSize: FONT_SIZES.md, fontWeight: '600'},
-  itemStock: {color: COLORS.textMuted, fontSize: FONT_SIZES.xs, marginTop: 2},
-  itemTotal: {color: COLORS.gold, fontWeight: '700', fontSize: FONT_SIZES.sm},
-  input: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    color: COLORS.text,
-    fontSize: FONT_SIZES.md,
-  },
+  selectedItem: {borderColor: 'rgba(96,165,250,0.22)', backgroundColor: 'rgba(59,130,246,0.08)'},
+  itemLeft: {flexDirection: 'row', alignItems: 'center', flex: 1},
+  itemIconBox: {width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center', marginRight: 10},
+  itemIconActive: {backgroundColor: 'rgba(59,130,246,0.14)', borderColor: 'rgba(96,165,250,0.18)'},
+  itemIcon: {fontSize: 12, color: '#CBD8E6'},
+  itemName: {color: '#F1F6FF', fontSize: 13, fontWeight: '700'},
+  itemStock: {color: '#8FA2BB', fontSize: 11, marginTop: 2},
+  itemRight: {alignItems: 'flex-end', flexDirection: 'row'},
+  itemTotal: {color: '#93C5FD', fontWeight: '800', fontSize: 12, marginRight: 8},
+  selectedDot: {width: 8, height: 8, borderRadius: 4, backgroundColor: '#60A5FA'},
+  inputWrap: {flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 14, paddingHorizontal: 12},
+  inputIcon: {fontSize: 12, color: '#6B84A0', marginRight: 8},
+  input: {flex: 1, paddingVertical: 12, color: '#F1F6FF', fontSize: 14, fontWeight: '500'},
   qtyRow: {flexDirection: 'row', alignItems: 'center'},
-  qtyBtn: {width: 48, height: 48, borderRadius: 10, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, justifyContent: 'center', alignItems: 'center'},
-  qtyBtnText: {fontSize: 22, color: COLORS.text, fontWeight: '700'},
-  qtyInput: {
-    flex: 1,
-    marginHorizontal: SPACING.sm,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    color: COLORS.text,
-    fontSize: FONT_SIZES.lg,
-    textAlign: 'center',
-    fontWeight: '700',
-  },
-  errorText: {color: COLORS.error, fontSize: FONT_SIZES.sm, marginTop: SPACING.xs},
+  qtyBtn: {width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center', overflow: 'hidden'},
+  qtyBtnPrimary: {borderColor: 'rgba(255,255,255,0.14)'},
+  qtyBtnText: {fontSize: 18, color: '#EAF2FD', fontWeight: '700'},
+  qtyInputWrap: {flex: 1, marginHorizontal: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center'},
+  qtyInput: {color: '#F1F6FF', fontSize: 18, textAlign: 'center', fontWeight: '800', paddingVertical: 2, minWidth: 40},
+  qtySub: {fontSize: 10, color: '#6B84A0', marginTop: 2},
+  errorText: {color: '#FCA5A5', fontSize: 11, marginTop: 6},
   payRow: {flexDirection: 'row'},
-  payChip: {paddingHorizontal: 16, paddingVertical: 8, backgroundColor: COLORS.surface, borderRadius: 20, marginRight: SPACING.sm, borderWidth: 1, borderColor: COLORS.border},
-  payChipActive: {backgroundColor: COLORS.gold, borderColor: COLORS.gold},
-  payText: {color: COLORS.textSecondary, fontWeight: '600', fontSize: FONT_SIZES.sm},
-  payTextActive: {color: COLORS.background},
-  summary: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: SPACING.lg, padding: SPACING.md, backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md},
-  summaryLine: {color: COLORS.textSecondary, fontSize: FONT_SIZES.md},
-  summaryTotal: {color: COLORS.gold, fontSize: FONT_SIZES.xl, fontWeight: '900'},
-  submitButton: {marginTop: SPACING.lg},
-  hint: {color: COLORS.textMuted, fontSize: FONT_SIZES.xs, textAlign: 'center', marginTop: SPACING.sm},
-  historyTitle: {fontSize: FONT_SIZES.md, color: COLORS.textSecondary, fontWeight: '700', marginTop: SPACING.lg, marginBottom: SPACING.sm},
+  payChip: {paddingHorizontal: 16, paddingVertical: 9, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', overflow: 'hidden', position: 'relative'},
+  payChipActive: {borderColor: 'rgba(96,165,250,0.22)'},
+  payText: {color: '#8FA2BB', fontWeight: '700', fontSize: 12},
+  payTextActive: {color: '#fff'},
+  summary: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(96,165,250,0.14)', overflow: 'hidden', position: 'relative'},
+  summaryLabel: {color: '#8FA2BB', fontSize: 12},
+  summaryHint: {color: '#6B84A0', fontSize: 10, marginTop: 2},
+  summaryTotal: {color: '#60A5FA', fontSize: 18, fontWeight: '900'},
+  submitButton: {marginTop: 16},
+  hint: {color: '#5E728C', fontSize: 11, textAlign: 'center', marginTop: 8, lineHeight: 14},
+  historyHeader: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginBottom: 10},
+  historyTitle: {fontSize: 12, color: '#EAF2FD', fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase'},
   saleItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: SPACING.md,
-    backgroundColor: COLORS.card,
-    borderRadius: BORDER_RADIUS.md,
-    marginBottom: SPACING.sm,
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 14,
+    marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.07)',
   },
-  saleName: {color: COLORS.text, fontWeight: '600', fontSize: FONT_SIZES.sm},
-  saleMeta: {color: COLORS.textMuted, fontSize: FONT_SIZES.xs, marginTop: 2},
-  saleAmount: {color: COLORS.gold, fontWeight: '700', fontSize: FONT_SIZES.sm},
-  saleStatus: {fontSize: FONT_SIZES.xs, color: COLORS.textMuted, textTransform: 'capitalize'},
-  saleConfirmed: {color: COLORS.success},
+  saleIconBox: {width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(59,130,246,0.12)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.16)', justifyContent: 'center', alignItems: 'center', marginRight: 10},
+  saleIcon: {fontSize: 12, color: '#93C5FD'},
+  saleName: {color: '#F1F6FF', fontWeight: '700', fontSize: 13},
+  saleMeta: {color: '#8FA2BB', fontSize: 11, marginTop: 2},
+  saleAmount: {color: '#93C5FD', fontWeight: '800', fontSize: 12},
+  saleStatusPill: {marginTop: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)'},
+  saleStatusConfirmed: {backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.18)'},
+  saleStatusText: {fontSize: 9, color: '#8FA2BB', textTransform: 'capitalize', fontWeight: '700'},
+  saleStatusTextConfirmed: {color: '#6EE7B7'},
 });

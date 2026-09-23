@@ -43,6 +43,9 @@ import { DashboardController } from '../controllers/dashboard.controller.ts';
 import { ReportController } from '../controllers/report.controller.ts';
 import { CameraController } from '../controllers/camera.controller.ts';
 import { NotificationController, AuditController, TaxController } from '../controllers/misc.controller.ts';
+import { TestingController } from '../controllers/testing.controller.ts';
+import { DeviceController } from '../controllers/device.controller.ts';
+import { AgentController } from '../controllers/agent.controller.ts';
 
 export const apiRouter = Router();
 
@@ -202,3 +205,41 @@ const taxRouter = Router();
 taxRouter.use(authenticateToken, requireBusiness, authorizeRoles('owner', 'boss', 'accountant'));
 taxRouter.get('/estimate', TaxController.calculateEstimate);
 apiRouter.use('/tax', taxRouter);
+
+// ==========================================
+// 17. GANZA AGENT OS — AUTONOMOUS AGENT ROUTES
+// ==========================================
+const agentRouter = Router();
+agentRouter.use(authenticateToken);
+agentRouter.post('/tasks', AgentController.createTask);
+agentRouter.get('/tasks', AgentController.listTasks);
+agentRouter.get('/tasks/:id', AgentController.getTask);
+agentRouter.post('/tasks/:id/cancel', AgentController.cancelTask);
+agentRouter.get('/tasks/:id/evidence', AgentController.getEvidence);
+agentRouter.get('/tasks/:id/report', AgentController.getReport);
+apiRouter.use('/agent', agentRouter);
+
+// ==========================================
+// 18. DEVICE REGISTRY
+// ==========================================
+const deviceRouter = Router();
+deviceRouter.use(authenticateToken);
+deviceRouter.post('/register', DeviceController.register);
+deviceRouter.get('/', DeviceController.list);
+deviceRouter.get('/:id', DeviceController.get);
+deviceRouter.post('/:id/heartbeat', DeviceController.heartbeat);
+apiRouter.use('/devices', deviceRouter);
+
+// ==========================================
+// 19. TESTING CENTER — SOURCE OF TRUTH
+// ==========================================
+const testingRouter = Router();
+testingRouter.use(authenticateToken);
+testingRouter.post('/cases', TestingController.createCase);
+testingRouter.get('/cases', TestingController.listCases);
+testingRouter.get('/cases/:id', TestingController.getCase);
+testingRouter.post('/cases/:id/run', TestingController.runTest);
+testingRouter.get('/runs', TestingController.listRuns);
+testingRouter.get('/runs/:id', TestingController.getRun);
+testingRouter.get('/runs/:id/evidence', TestingController.getEvidence);
+apiRouter.use('/testing', testingRouter);

@@ -1,13 +1,18 @@
 import React, {useState, useEffect, useCallback} from 'react';
 import {View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, RefreshControl, Image} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import {useFocusEffect} from '@react-navigation/native';
 import {useAuth} from '../../hooks/useAuth';
 import {useLocalization} from '../../localization/LocalizationContext';
 import {firebaseService} from '../../services/FirebaseService';
-import {Button} from '../../components/common/Button';
 import {formatRWF} from '../../utils/formatters';
-import {COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS} from '../../constants/theme';
+import {COLORS, SPACING, FONT_SIZES, BORDER_RADIUS} from '../../constants/theme';
 import {InventoryItem} from '../../types';
+import {GanzaHeader} from '../../components/premium/GanzaHeader';
+import {AmbientBackground} from '../../components/premium/AmbientBackground';
+import {GlassCard} from '../../components/premium/GlassCard';
+import {PremiumButton} from '../../components/premium/PremiumButton';
+import {StatusPill} from '../../components/premium/StatusPill';
 
 export default function InventoryScreen({navigation}: {navigation: {navigate: (s: string, p?: unknown) => void}}) {
   const {t} = useLocalization();
@@ -25,7 +30,6 @@ export default function InventoryScreen({navigation}: {navigation: {navigate: (s
       setItems(data);
     } catch (e) {
       const msg = e instanceof Error ? e.message : t('backendError');
-      // Honest offline
       console.warn('Inventory load failed:', msg);
     } finally {
       setLoading(false);
@@ -40,7 +44,7 @@ export default function InventoryScreen({navigation}: {navigation: {navigate: (s
   useFocusEffect(
     useCallback(() => {
       loadInventory();
-    }, [loadInventory])
+    }, [loadInventory]),
   );
 
   const onRefresh = () => {
@@ -58,6 +62,8 @@ export default function InventoryScreen({navigation}: {navigation: {navigate: (s
       if (filter === 'recent') return b.updatedAt - a.updatedAt;
       return a.name.localeCompare(b.name);
     });
+
+  const totalValue = items.reduce((a, i) => a + (i.totalValue || 0), 0);
 
   const handleDelete = (item: InventoryItem) => {
     Alert.alert(t('remove'), `${t('remove')} "${item.name}"?`, [
@@ -78,120 +84,213 @@ export default function InventoryScreen({navigation}: {navigation: {navigate: (s
     ]);
   };
 
-  const renderItem = ({item}: {item: InventoryItem}) => (
-    <TouchableOpacity style={styles.itemCard} onPress={() => navigation.navigate('ItemDetail', {item})} activeOpacity={0.85}>
-      {item.imageUrl ? <Image source={{uri: item.imageUrl}} style={styles.thumb} /> : <View style={[styles.thumb, styles.thumbPlaceholder]}><Text style={styles.thumbText}>📦</Text></View>}
-      <View style={styles.itemInfo}>
-        <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.itemDetails}>
-          {item.quantity} {item.unit} • {formatRWF(item.unitPrice)} /pc
-        </Text>
-        {item.isUserCorrected && <Text style={styles.corrected}>⚠ {t('userCorrected')}</Text>}
-      </View>
-      <View style={{alignItems: 'flex-end'}}>
-        <Text style={styles.itemTotal}>{formatRWF(item.totalValue)}</Text>
-        <View style={styles.itemActions}>
-          <TouchableOpacity onPress={() => navigation.navigate('ItemDetail', {item})} style={styles.iconBtn}>
-            <Text>✏️</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDelete(item)} style={styles.iconBtn}>
-            <Text>🗑️</Text>
+  const renderItem = ({item}: {item: InventoryItem}) => {
+    const isLow = item.quantity > 0 && item.quantity < 5;
+    return (
+      <TouchableOpacity style={styles.itemCard} onPress={() => navigation.navigate('ItemDetail', {item})} activeOpacity={0.88}>
+        <LinearGradient colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.02)'] as unknown as string[]} style={StyleSheet.absoluteFill} />
+        <View style={styles.itemHighlight} />
+        {item.imageUrl ? (
+          <Image source={{uri: item.imageUrl}} style={styles.thumb} />
+        ) : (
+          <View style={styles.thumbPlaceholder}>
+            <LinearGradient colors={['rgba(59,130,246,0.14)', 'rgba(255,255,255,0.04)'] as unknown as string[]} style={StyleSheet.absoluteFill} />
+            <Text style={styles.thumbIcon}>⬢</Text>
+          </View>
+        )}
+        <View style={styles.itemInfo}>
+          <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.itemDetails}>{item.quantity} {item.unit} • {formatRWF(item.unitPrice)} /pc • {item.category || 'General'}</Text>
+          <View style={styles.itemMetaRow}>
+            <View style={[styles.qtyPill, isLow && styles.qtyPillLow]}>
+              <View style={[styles.qtyDot, isLow && styles.qtyDotLow]} />
+              <Text style={[styles.qtyText, isLow && styles.qtyTextLow]}>{item.quantity} pcs</Text>
+            </View>
+            {item.isUserCorrected && <StatusPill status="warning" label={t('userCorrected')} />}
+          </View>
+        </View>
+        <View style={styles.itemRight}>
+          <Text style={styles.itemTotal}>{formatRWF(item.totalValue)}</Text>
+          <View style={styles.itemActions}>
+            <TouchableOpacity onPress={() => navigation.navigate('ItemDetail', {item})} style={styles.iconBtn} activeOpacity={0.8}>
+              <View style={styles.actionIconBox}><Text style={styles.actionIcon}>✎</Text></View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleDelete(item)} style={styles.iconBtn} activeOpacity={0.8}>
+              <View style={[styles.actionIconBox, styles.actionDeleteBox]}><Text style={styles.actionIconDelete}>×</Text></View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <AmbientBackground>
+      <GanzaHeader variant="compact" onNotificationPress={() => navigation.navigate('Notifications')} onProfilePress={() => navigation.navigate('Profile')} />
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>{t('inventory')}</Text>
+            <Text style={styles.subtitle}>Ububiko • {items.length} items • AI-monitored</Text>
+          </View>
+          <View style={styles.headerValueCard}>
+            <Text style={styles.headerValueLabel}>Agaciro kose</Text>
+            <Text style={styles.headerValue}>{formatRWF(totalValue)}</Text>
+          </View>
+        </View>
+
+        {/* Search — premium glass */}
+        <View style={styles.searchWrap}>
+          <Text style={styles.searchIcon}>◈</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Shakisha — izina, category..."
+            placeholderTextColor="#5E728C"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear}>
+              <Text style={styles.searchClearText}>×</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Filters */}
+        <View style={styles.filters}>
+          {(['all', 'low', 'recent'] as const).map(f => (
+            <TouchableOpacity key={f} style={[styles.filterChip, filter === f && styles.filterChipActive]} onPress={() => setFilter(f)} activeOpacity={0.85}>
+              <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
+                {f === 'all' ? 'Byose' : f === 'low' ? t('lowStock') : 'Vuba'}
+              </Text>
+              {filter === f && <View style={styles.filterDot} />}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Automation insight */}
+        <View style={styles.insightBar}>
+          <View style={styles.insightDot} />
+          <Text style={styles.insightText}>GANZA AI irimo gukurikirana stock • Low-stock alerts active</Text>
+        </View>
+
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <View style={styles.loadingPulse} />
+            <Text style={styles.loadingText}>{t('loading')}</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredItems}
+            renderItem={renderItem}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.list}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#60A5FA" />}
+            ListEmptyComponent={
+              <GlassCard style={{marginTop: 16}} padding="lg">
+                <View style={styles.emptyWrap}>
+                  <View style={styles.emptyIconBox}><Text style={styles.emptyIcon}>⬢</Text></View>
+                  <Text style={styles.emptyTitle}>{t('noResult')}</Text>
+                  <Text style={styles.emptySub}>Nta bicuruzwa bihuye na filter. Ongera ugerageze cyangwa ushyiremo ibishya.</Text>
+                </View>
+              </GlassCard>
+            }
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+
+        <View style={styles.fabWrap}>
+          <PremiumButton title={`＋ ${t('addStock')}`} onPress={() => navigation.navigate('ItemDetail', {})} size="lg" style={{flex: 1, marginRight: 8}} />
+          <TouchableOpacity style={styles.scanFab} onPress={() => (navigation as any).navigate('Scan')} activeOpacity={0.88}>
+            <LinearGradient colors={['#38BDF8', '#3B82F6'] as unknown as string[]} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={StyleSheet.absoluteFill} />
+            <Text style={styles.scanFabIcon}>⬢</Text>
+            <Text style={styles.scanFabText}>Scan</Text>
           </TouchableOpacity>
         </View>
       </View>
-    </TouchableOpacity>
-  );
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('inventory')}</Text>
-        <Text style={styles.subtitle}>{items.length} {t('productCount')} • {formatRWF(items.reduce((a, i) => a + i.totalValue, 0))}</Text>
-      </View>
-
-      <TextInput
-        style={styles.searchInput}
-        placeholder={t('search')}
-        placeholderTextColor={COLORS.textMuted}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        autoCapitalize="none"
-      />
-
-      <View style={styles.filters}>
-        {(['all', 'low', 'recent'] as const).map(f => (
-          <TouchableOpacity key={f} style={[styles.filterChip, filter === f && styles.filterChipActive]} onPress={() => setFilter(f)}>
-            <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
-              {f === 'all' ? t('filter') + ': All' : f === 'low' ? t('lowStock') : t('history')}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {loading ? (
-        <Text style={styles.loadingText}>{t('loading')}</Text>
-      ) : (
-        <FlatList
-          data={filteredItems}
-          renderItem={renderItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.gold} />}
-          ListEmptyComponent={<Text style={styles.emptyText}>{t('noResult')}</Text>}
-        />
-      )}
-
-      <View style={styles.fabWrap}>
-        <Button title={`+ ${t('addStock')}`} onPress={() => navigation.navigate('ItemDetail', {})} variant="primary" size="lg" />
-        <Button title={`📷 ${t('scanBoards')}`} onPress={() => navigation.navigate('Scan')} variant="secondary" style={{marginTop: SPACING.sm}} />
-      </View>
-    </View>
+    </AmbientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: COLORS.background, padding: SPACING.md},
-  header: {marginBottom: SPACING.md},
-  title: {fontSize: FONT_SIZES.xl, color: COLORS.cream, fontWeight: '800'},
-  subtitle: {fontSize: FONT_SIZES.sm, color: COLORS.textSecondary, marginTop: 4},
-  searchInput: {
-    backgroundColor: COLORS.card,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    color: COLORS.text,
-    fontSize: FONT_SIZES.md,
+  container: {flex: 1, padding: SPACING.md, paddingTop: 12},
+  header: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14},
+  title: {fontSize: 26, fontWeight: '900', color: '#F1F6FF', letterSpacing: -0.6},
+  subtitle: {fontSize: 12, color: '#8FA2BB', marginTop: 4, fontWeight: '500'},
+  headerValueCard: {alignItems: 'flex-end', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)'},
+  headerValueLabel: {fontSize: 10, fontWeight: '700', letterSpacing: 0.7, textTransform: 'uppercase', color: '#8FA2BB'},
+  headerValue: {fontSize: 14, fontWeight: '900', color: '#93C5FD', marginTop: 2},
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: SPACING.sm,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 12,
+    minHeight: 48,
+    marginBottom: 10,
   },
-  filters: {flexDirection: 'row', marginBottom: SPACING.md},
-  filterChip: {paddingHorizontal: 12, paddingVertical: 6, backgroundColor: COLORS.surface, borderRadius: 20, marginRight: SPACING.sm, borderWidth: 1, borderColor: COLORS.border},
-  filterChipActive: {backgroundColor: COLORS.gold, borderColor: COLORS.gold},
-  filterText: {color: COLORS.textSecondary, fontSize: FONT_SIZES.sm, fontWeight: '600'},
-  filterTextActive: {color: COLORS.background},
-  list: {paddingBottom: 160},
+  searchIcon: {fontSize: 13, color: '#6B84A0', marginRight: 8},
+  searchInput: {flex: 1, color: '#F1F6FF', fontSize: 14, fontWeight: '500', paddingVertical: 10},
+  searchClear: {width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center', marginLeft: 8},
+  searchClearText: {fontSize: 16, color: '#8FA2BB', fontWeight: '700'},
+  filters: {flexDirection: 'row', marginBottom: 10},
+  filterChip: {flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)'},
+  filterChipActive: {backgroundColor: '#3B82F6', borderColor: '#60A5FA', shadowColor: '#3B82F6', shadowOpacity: 0.25, shadowRadius: 8},
+  filterText: {color: '#8FA2BB', fontSize: 12, fontWeight: '700'},
+  filterTextActive: {color: '#fff'},
+  filterDot: {width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#fff', marginLeft: 6},
+  insightBar: {flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(59,130,246,0.08)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.12)', marginBottom: 10},
+  insightDot: {width: 6, height: 6, borderRadius: 3, backgroundColor: '#60A5FA', marginRight: 8},
+  insightText: {fontSize: 11, color: '#93C5FD', fontWeight: '500', flex: 1},
+  list: {paddingBottom: 120},
   itemCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    marginBottom: SPACING.sm,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
-    ...SHADOWS.small,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    overflow: 'hidden',
+    position: 'relative',
   },
-  thumb: {width: 56, height: 56, borderRadius: 8, backgroundColor: COLORS.surface, marginRight: SPACING.md},
-  thumbPlaceholder: {justifyContent: 'center', alignItems: 'center'},
-  thumbText: {fontSize: 22},
+  itemHighlight: {position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.08)'},
+  thumb: {width: 56, height: 56, borderRadius: 14, backgroundColor: '#0A1930', marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)'},
+  thumbPlaceholder: {width: 56, height: 56, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', marginRight: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', overflow: 'hidden'},
+  thumbIcon: {fontSize: 18, color: '#8FA2BB'},
   itemInfo: {flex: 1},
-  itemName: {fontSize: FONT_SIZES.md, color: COLORS.text, fontWeight: '700'},
-  itemDetails: {fontSize: FONT_SIZES.sm, color: COLORS.textSecondary, marginTop: 2},
-  corrected: {fontSize: FONT_SIZES.xs, color: COLORS.warning, marginTop: 2},
-  itemTotal: {fontSize: FONT_SIZES.md, color: COLORS.gold, fontWeight: '800'},
-  itemActions: {flexDirection: 'row', marginTop: 4},
-  iconBtn: {padding: 4, marginLeft: 6},
-  loadingText: {color: COLORS.textSecondary, textAlign: 'center', marginTop: SPACING.xl},
-  emptyText: {color: COLORS.textMuted, textAlign: 'center', marginTop: SPACING.xl},
-  fabWrap: {position: 'absolute', bottom: 16, left: 16, right: 16},
+  itemName: {fontSize: 14, color: '#F1F6FF', fontWeight: '700', letterSpacing: -0.1},
+  itemDetails: {fontSize: 11, color: '#8FA2BB', marginTop: 2},
+  itemMetaRow: {flexDirection: 'row', alignItems: 'center', marginTop: 6},
+  qtyPill: {flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, backgroundColor: 'rgba(16,185,129,0.10)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.14)', marginRight: 6},
+  qtyPillLow: {backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.18)'},
+  qtyDot: {width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#10B981', marginRight: 5},
+  qtyDotLow: {backgroundColor: '#F59E0B'},
+  qtyText: {fontSize: 10, fontWeight: '700', color: '#6EE7B7'},
+  qtyTextLow: {color: '#FCD34D'},
+  itemRight: {alignItems: 'flex-end', marginLeft: 10},
+  itemTotal: {fontSize: 13, color: '#93C5FD', fontWeight: '900'},
+  itemActions: {flexDirection: 'row', marginTop: 6},
+  iconBtn: {marginLeft: 6},
+  actionIconBox: {width: 28, height: 28, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center'},
+  actionDeleteBox: {backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.12)'},
+  actionIcon: {fontSize: 12, color: '#CBD8E6', fontWeight: '700'},
+  actionIconDelete: {fontSize: 16, color: '#FCA5A5', fontWeight: '700', marginTop: -1},
+  loadingWrap: {alignItems: 'center', marginTop: 40},
+  loadingPulse: {width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(59,130,246,0.14)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.18)', marginBottom: 12},
+  loadingText: {color: '#8FA2BB', fontSize: 12, fontWeight: '600'},
+  emptyWrap: {alignItems: 'center', paddingVertical: 8},
+  emptyIconBox: {width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center', marginBottom: 12},
+  emptyIcon: {fontSize: 20, color: '#6B84A0'},
+  emptyTitle: {fontSize: 14, fontWeight: '700', color: '#EAF2FD', textAlign: 'center'},
+  emptySub: {fontSize: 12, color: '#8FA2BB', textAlign: 'center', marginTop: 6, lineHeight: 16},
+  fabWrap: {position: 'absolute', bottom: 16, left: 16, right: 16, flexDirection: 'row', alignItems: 'center'},
+  scanFab: {width: 80, borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)'},
+  scanFabIcon: {fontSize: 16, color: '#fff', fontWeight: '700'},
+  scanFabText: {fontSize: 10, fontWeight: '800', color: '#fff', marginTop: 2, letterSpacing: 0.5, textTransform: 'uppercase'},
 });
