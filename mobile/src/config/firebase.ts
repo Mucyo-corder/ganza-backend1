@@ -19,12 +19,12 @@ import {
  * Admin credentials must never be in the app.
  */
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || 'AIzaSyPlaceholder-Ganza-App-412ff',
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'ganza-app-412ff.firebaseapp.com',
-  projectId: process.env.FIREBASE_PROJECT_ID || 'ganza-app-412ff',
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'ganza-app-412ff.appspot.com',
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '1234567890',
-  appId: process.env.FIREBASE_APP_ID || '1:1234567890:web:placeholder',
+  apiKey: "AIzaSyCdPF2wrhBRQ5bxij5dfrRpXAGv417-3Dc",
+  authDomain: "ganza-app-412ff.firebaseapp.com",
+  projectId: "ganza-app-412ff",
+  storageBucket: "ganza-app-412ff.firebasestorage.app",
+  messagingSenderId: "565631957128",
+  appId: "1:565631957128:web:bdc7f54b868a9c79c5873d",
 };
 
 let app: FirebaseApp | null = null;
@@ -50,7 +50,7 @@ export function getFirebaseAuthInstance(): Auth {
 export function isFirebaseConfigured(): boolean {
   return Boolean(
     firebaseConfig.apiKey &&
-      firebaseConfig.apiKey !== 'AIzaSyPlaceholder-Ganza-App-412ff' &&
+      firebaseConfig.apiKey !== '' &&
       firebaseConfig.projectId
   );
 }
