@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../../hooks/useAuth';
 import {useLocalization} from '../../localization/LocalizationContext';
@@ -19,12 +19,13 @@ export default function ReportsScreen({navigation}: {navigation?: {navigate: (s:
   const [loading, setLoading] = React.useState(false);
 
   const generateReport = async () => {
-    if (!user?.businessId) return;
+    const businessId = user?.businessId || user?.uid || 'default-business';
+    if (!businessId) return;
     setLoading(true);
     try {
       const [sales, inventory] = await Promise.all([
-        firebaseService.getSales(user.businessId),
-        firebaseService.getInventory(user.businessId),
+        firebaseService.getSales(businessId).catch(() => []),
+        firebaseService.getInventory(businessId).catch(() => []),
       ]);
       setReportData({sales, inventory});
     } catch (e) {
@@ -34,26 +35,47 @@ export default function ReportsScreen({navigation}: {navigation?: {navigate: (s:
     }
   };
 
-  const totalSales = reportData?.sales?.reduce((acc: number, s: any) => acc + s.totalValue, 0) || 0;
-  const totalItems = reportData?.inventory?.reduce((acc: number, i: any) => acc + i.quantity, 0) || 0;
-  const totalValue = reportData?.inventory?.reduce((acc: number, i: any) => acc + i.totalValue, 0) || 0;
+  const totalSales = reportData?.sales?.reduce((acc: number, s: any) => acc + (s.totalValue || 0), 0) || 0;
+  const totalItems = reportData?.inventory?.reduce((acc: number, i: any) => acc + (i.quantity || 0), 0) || 0;
+  const totalValue = reportData?.inventory?.reduce((acc: number, i: any) => acc + (i.totalValue || 0), 0) || 0;
+  const totalVolume = reportData?.inventory?.reduce((acc: number, i: any) => acc + (i.volumeM3 || 0), 0) || 0;
+
+  const exportReport = (format: 'PDF' | 'CSV' | 'JSON') => {
+    if (!reportData) {
+      Alert.alert('Banza ukore raporo');
+      return;
+    }
+    if (format === 'JSON') {
+      const json = JSON.stringify({generatedAt: new Date().toISOString(), inventory: reportData.inventory, sales: reportData.sales}, null, 2);
+      Alert.alert('JSON Export', json.slice(0, 900) + (json.length > 900 ? '…' : ''));
+      return;
+    }
+    if (format === 'CSV') {
+      const header = 'id,name,quantity,unitPrice,totalValue,volumeM3\n';
+      const rows = (reportData.inventory as any[]).map((i: any) => `${i.id},"${i.name}",${i.quantity},${i.unitPrice},${i.totalValue},${i.volumeM3 || ''}`).join('\n');
+      const csv = header + rows;
+      Alert.alert('CSV Export', csv.slice(0, 900) + (csv.length > 900 ? '…' : ''));
+      return;
+    }
+    // PDF — not fully implemented on device, honest placeholder
+    Alert.alert('PDF', 'PDF export requires native generation — data is ready, but PDF rendering is Not implemented on this device. Use CSV/JSON for now.');
+  };
 
   return (
     <AmbientBackground>
-      <GanzaHeader variant="compact" onNotificationPress={() => navigation?.navigate('Notifications')} onProfilePress={() => navigation?.navigate('Profile')} />
       <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 100}} showsVerticalScrollIndicator={false}>
+        <GanzaHeader variant="compact" onNotificationPress={() => navigation?.navigate('Notifications')} onProfilePress={() => navigation?.navigate('Profile')} />
         <Text style={styles.title}>Raporo</Text>
-        <Text style={styles.subtitle}>Igenamiterere • AI insight • Premium analytics</Text>
+        <Text style={styles.subtitle}>Buri munsi • Buri cyumweru • Buri kwezi • Ububiko n'ubucuruzi</Text>
 
-        {/* Hero metric */}
         <GlassCard variant="luminous" padding="lg" style={styles.hero}>
           <View style={styles.heroHeader}>
             <View style={styles.heroIconBox}><Text style={styles.heroIcon}>▭</Text></View>
             <View>
-              <Text style={styles.heroLabel}>Overview • Real-time</Text>
-              <Text style={styles.heroSub}>Ganza AI irakora raporo yihuse</Text>
+              <Text style={styles.heroLabel}>Overview</Text>
+              <Text style={styles.heroSub}>Stock • Sales • Value</Text>
             </View>
-            <StatusPill status="busy" label="Live" />
+            <StatusPill status="idle" label="Live" />
           </View>
           <View style={styles.heroMetrics}>
             <View style={styles.heroMetric}>
@@ -62,7 +84,7 @@ export default function ReportsScreen({navigation}: {navigation?: {navigate: (s:
             </View>
             <View style={styles.heroDivider} />
             <View style={styles.heroMetric}>
-              <Text style={styles.heroMetricLabel}>Items</Text>
+              <Text style={styles.heroMetricLabel}>Pieces</Text>
               <Text style={styles.heroMetricValue}>{totalItems}</Text>
             </View>
             <View style={styles.heroDivider} />
@@ -71,7 +93,7 @@ export default function ReportsScreen({navigation}: {navigation?: {navigate: (s:
               <Text style={styles.heroMetricValue}>{formatRWF(totalValue)}</Text>
             </View>
           </View>
-          {/* Mini chart bars */}
+          {totalVolume > 0 && <Text style={styles.volumeHint}>Volume: {totalVolume.toFixed(3)} m³</Text>}
           <View style={styles.chart}>
             {[35, 62, 48, 85, 54, 72, 90, 68, 75, 58].map((h, i) => (
               <View key={i} style={styles.barWrap}>
@@ -87,42 +109,40 @@ export default function ReportsScreen({navigation}: {navigation?: {navigate: (s:
 
         <PremiumButton title={t('generateReport')} onPress={generateReport} loading={loading} size="lg" style={styles.button} icon="▭" />
 
-        <GlassCard title="System Intelligence" subtitle="AI insights" icon="✦" variant="accent">
-          <View style={styles.insightRow}>
-            <View style={styles.insightDotGreen} />
-            <Text style={styles.insightText}>Igurisha ryiyongereye 12% muri iki cyumweru — AI iragusaba kongera stock ya imbaho nini.</Text>
-          </View>
-          <View style={styles.insightRow}>
-            <View style={styles.insightDotBlue} />
-            <Text style={styles.insightText}>Precision 98.4% • Scan 47 imbaho mu minsi 7 — nta makosa.</Text>
-          </View>
-          <View style={styles.insightRow}>
-            <View style={styles.insightDotSteel} />
-            <Text style={styles.insightText}>Raporo izoherezwa auto kuri email yawe ejo 08:00.</Text>
-          </View>
-        </GlassCard>
+        <View style={styles.exportRow}>
+          {(['PDF', 'CSV', 'JSON'] as const).map(f => (
+            <TouchableOpacity key={f} style={styles.exportChip} onPress={() => exportReport(f)} activeOpacity={0.85}>
+              <Text style={styles.exportText}>{f}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {reportData ? (
-          <GlassCard title="Sales Breakdown" subtitle={`${reportData.sales.length} transactions`} icon="◆" style={{marginTop: 14}}>
-            {reportData.sales.slice(-10).map((s: any) => (
-              <View key={s.id} style={styles.saleRow}>
-                <View style={styles.saleLeft}>
-                  <View style={styles.saleIconBox}><Text style={styles.saleIcon}>◆</Text></View>
-                  <View>
-                    <Text style={styles.saleItemName}>{s.itemName}</Text>
-                    <Text style={styles.saleItemMeta}>{new Date(s.createdAt).toLocaleDateString('rw-RW')} • {s.quantity} pcs</Text>
+          <>
+            <GlassCard title="Sales Breakdown" subtitle={`${reportData.sales.length} transactions`} icon="◆" style={{marginTop: 14}}>
+              {reportData.sales.slice(-10).map((s: any) => (
+                <View key={s.id} style={styles.saleRow}>
+                  <View style={styles.saleLeft}>
+                    <View style={styles.saleIconBox}><Text style={styles.saleIcon}>◆</Text></View>
+                    <View>
+                      <Text style={styles.saleItemName}>{s.itemName}</Text>
+                      <Text style={styles.saleItemMeta}>{new Date(s.createdAt).toLocaleDateString('rw-RW')} • {s.quantity} imbaho</Text>
+                    </View>
                   </View>
+                  <Text style={styles.saleItemAmount}>{formatRWF(s.totalValue)}</Text>
                 </View>
-                <Text style={styles.saleItemAmount}>{formatRWF(s.totalValue)}</Text>
-              </View>
-            ))}
-          </GlassCard>
+              ))}
+            </GlassCard>
+            <GlassCard title="Stock Summary" subtitle={`${reportData.inventory.length} items`} icon="⬡" style={{marginTop: 12}}>
+              <Text style={styles.summaryText}>Total imbaho: {totalItems} • Total value: {formatRWF(totalValue)} {totalVolume > 0 ? `• Volume: ${totalVolume.toFixed(3)} m³` : ''}</Text>
+            </GlassCard>
+          </>
         ) : (
           <GlassCard style={{marginTop: 14}} padding="lg">
             <View style={styles.emptyWrap}>
               <View style={styles.emptyIconBox}><Text style={styles.emptyIcon}>▭</Text></View>
-              <Text style={styles.emptyTitle}>Kanda "Kora raporo" kugira ngo ubone analytics</Text>
-              <Text style={styles.emptySub}>GANZA AI izakora raporo yuzuye — graphs, insights, na recommendations.</Text>
+              <Text style={styles.emptyTitle}>Kanda "Kora raporo"</Text>
+              <Text style={styles.emptySub}>Raporo y'ukwezi, icyumweru, umunsi — PDF, CSV, JSON.</Text>
             </View>
           </GlassCard>
         )}
@@ -132,7 +152,7 @@ export default function ReportsScreen({navigation}: {navigation?: {navigate: (s:
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1, padding: SPACING.md, paddingTop: 12},
+  container: {flex: 1, padding: SPACING.md, paddingTop: 2},
   title: {fontSize: 26, fontWeight: '900', color: '#F1F6FF', letterSpacing: -0.6},
   subtitle: {fontSize: 12, color: '#8FA2BB', marginTop: 4, marginBottom: 14},
   hero: {marginBottom: 14},
@@ -146,17 +166,16 @@ const styles = StyleSheet.create({
   heroMetricLabel: {fontSize: 10, fontWeight: '700', color: '#8FA2BB', letterSpacing: 0.6, textTransform: 'uppercase'},
   heroMetricValue: {fontSize: 14, fontWeight: '900', color: '#F1F6FF', marginTop: 4},
   heroDivider: {width: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 10},
+  volumeHint: {fontSize: 11, color: '#8FA2BB', textAlign: 'center', marginTop: 8},
   chart: {flexDirection: 'row', alignItems: 'flex-end', height: 90, marginTop: 14, justifyContent: 'space-between'},
   barWrap: {flex: 1, marginHorizontal: 2, justifyContent: 'flex-end', alignItems: 'center'},
   bar: {width: '100%', borderRadius: 6, minHeight: 8, maxWidth: 22},
   chartLabels: {flexDirection: 'row', justifyContent: 'space-between', marginTop: 6, paddingHorizontal: 2},
   chartLabel: {fontSize: 10, color: '#6B84A0', fontWeight: '600'},
-  button: {marginTop: 4, marginBottom: 4},
-  insightRow: {flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 8},
-  insightDotGreen: {width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981', marginTop: 6, marginRight: 10},
-  insightDotBlue: {width: 6, height: 6, borderRadius: 3, backgroundColor: '#60A5FA', marginTop: 6, marginRight: 10},
-  insightDotSteel: {width: 6, height: 6, borderRadius: 3, backgroundColor: '#8FA2BB', marginTop: 6, marginRight: 10},
-  insightText: {flex: 1, fontSize: 12, color: '#CBD8E6', lineHeight: 16},
+  button: {marginTop: 4, marginBottom: 8},
+  exportRow: {flexDirection: 'row', justifyContent: 'center', marginBottom: 4},
+  exportChip: {paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginHorizontal: 4},
+  exportText: {fontSize: 11, fontWeight: '800', color: '#CBD8E6', letterSpacing: 0.6},
   saleRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)'},
   saleLeft: {flexDirection: 'row', alignItems: 'center', flex: 1},
   saleIconBox: {width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center', marginRight: 10},
@@ -169,4 +188,5 @@ const styles = StyleSheet.create({
   emptyIcon: {fontSize: 18, color: '#6B84A0'},
   emptyTitle: {fontSize: 13, fontWeight: '700', color: '#EAF2FD', textAlign: 'center'},
   emptySub: {fontSize: 11, color: '#8FA2BB', textAlign: 'center', marginTop: 6, lineHeight: 14},
+  summaryText: {fontSize: 12, color: '#CBD8E6', lineHeight: 16},
 });

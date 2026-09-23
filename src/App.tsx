@@ -80,54 +80,55 @@ const AppShell: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F7F2EA] dark:bg-[#1B120E] text-[#241A15] dark:text-[#F7F2EA] flex flex-col font-sans transition-colors duration-300 antialiased selection:bg-[#C9A45C] selection:text-black">
-      {/* Top Header */}
-      <TopHeader
-        onOpenCapture={() => setIsCameraCaptureOpen(true)}
-        onOpenVoice={() => setIsVoiceOpen(true)}
-        onOpenHelp={() => setIsHelpOpen(true)}
-        onOpenNotifications={() => setIsNotificationOpen(true)}
-      />
-
+      {/* SCROLLABLE layout — header is INSIDE scrollable content per spec §3 §22 */}
       <div className="flex-1 flex max-w-7xl w-full mx-auto">
-        {/* Desktop Luxury Wood Sidebar */}
+        {/* Desktop Sidebar — not fixed, scrolls naturally on long content */}
         <Sidebar
           onOpenCapture={() => setIsCameraCaptureOpen(true)}
           onOpenVoice={() => setIsVoiceOpen(true)}
         />
 
-        {/* Main Routed Content Area */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-5xl w-full mx-auto pb-24 md:pb-12">
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <HomeScreen
-                  onOpenCapture={() => setIsCameraCaptureOpen(true)}
-                  onOpenVoice={() => setIsVoiceOpen(true)}
-                />
-              }
-            />
-            <Route path="/kamera" element={<CameraScreen />} />
-            <Route path="/camera" element={<CameraScreen />} />
-            <Route path="/imbaho" element={<InventoryScreen />} />
-            <Route path="/inventory" element={<InventoryScreen />} />
-            <Route path="/kugurisha" element={<SalesScreen />} />
-            <Route path="/sales" element={<SalesScreen />} />
-            <Route path="/kugura" element={<PurchasesScreen />} />
-            <Route path="/purchases" element={<PurchasesScreen />} />
-            <Route path="/abakiriya" element={<CustomersScreen />} />
-            <Route path="/customers" element={<CustomersScreen />} />
-            <Route path="/business" element={<BusinessScreen />} />
-            <Route path="/raporo" element={<DailyReportScreen />} />
-            <Route path="/report" element={<DailyReportScreen />} />
-            <Route path="/byinshi" element={<MoreScreen />} />
-            <Route path="/more" element={<MoreScreen />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
+        {/* Main scrollable column: header + content both scroll */}
+        <div className="flex-1 flex flex-col min-h-screen w-full">
+          <TopHeader
+            onOpenCapture={() => setIsCameraCaptureOpen(true)}
+            onOpenVoice={() => setIsVoiceOpen(true)}
+            onOpenHelp={() => setIsHelpOpen(true)}
+            onOpenNotifications={() => setIsNotificationOpen(true)}
+          />
+          <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-5xl w-full mx-auto pb-24 md:pb-12">
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <HomeScreen
+                    onOpenCapture={() => setIsCameraCaptureOpen(true)}
+                    onOpenVoice={() => setIsVoiceOpen(true)}
+                  />
+                }
+              />
+              <Route path="/kamera" element={<CameraScreen />} />
+              <Route path="/camera" element={<CameraScreen />} />
+              <Route path="/imbaho" element={<InventoryScreen />} />
+              <Route path="/inventory" element={<InventoryScreen />} />
+              <Route path="/kugurisha" element={<SalesScreen />} />
+              <Route path="/sales" element={<SalesScreen />} />
+              <Route path="/kugura" element={<PurchasesScreen />} />
+              <Route path="/purchases" element={<PurchasesScreen />} />
+              <Route path="/abakiriya" element={<CustomersScreen />} />
+              <Route path="/customers" element={<CustomersScreen />} />
+              <Route path="/business" element={<BusinessScreen />} />
+              <Route path="/raporo" element={<DailyReportScreen />} />
+              <Route path="/report" element={<DailyReportScreen />} />
+              <Route path="/byinshi" element={<MoreScreen />} />
+              <Route path="/more" element={<MoreScreen />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
       </div>
 
-      {/* Mobile Bottom Navigation (5 tabs) */}
+      {/* Mobile Bottom Navigation */}
       <BottomNavigation />
 
       {/* Global Interactive Modals */}

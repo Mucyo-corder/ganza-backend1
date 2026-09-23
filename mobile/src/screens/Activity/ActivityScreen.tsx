@@ -8,7 +8,7 @@ import {SPACING} from '../../constants/theme';
 
 const ACTIVITIES = [
   {id: '1', title: 'Scan yakozwe neza', desc: '14 imbaho • 94% confidence • AI Vision', time: '10:42', type: 'scan', status: 'success' as const},
-  {id: '2', title: 'Igurisha ryemejwe', desc: 'Uwacu Ltd • 12 pcs • 180,000 RWF', time: '09:18', type: 'sale', status: 'success' as const},
+  {id: '2', title: 'Igurisha ryemejwe', desc: 'Uwacu Ltd • 12 imbaho • 180,000 RWF', time: '09:18', type: 'sale', status: 'success' as const},
   {id: '3', title: 'Sync hagati ya telephone & computer', desc: 'Auto-sync • 24 items • Cloud', time: '08:55', type: 'sync', status: 'busy' as const},
   {id: '4', title: 'Raporo yakozwe', desc: 'Weekly report • PDF • Shared', time: 'Yesterday 18:30', type: 'report', status: 'idle' as const},
   {id: '5', title: 'Umukiriya mushya', desc: 'Jean Bosco • 0788 123 456', time: 'Yesterday 16:12', type: 'customer', status: 'success' as const},

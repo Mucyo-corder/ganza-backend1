@@ -88,6 +88,29 @@ export class FirestoreRepository<T extends { id: string; businessId?: string }> 
     return items as unknown as T[];
   }
 
+  async findAll(
+    limit = 1000,
+    orderByField = 'createdAt',
+    orderDir: 'asc' | 'desc' = 'desc'
+  ): Promise<T[]> {
+    const db = getFirestoreDb();
+    if (db) {
+      const query = db.collection(this.collectionName).orderBy(orderByField, orderDir).limit(limit);
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc) => ({ ...(doc.data() as T), id: doc.id }));
+    }
+
+    const items = Array.from(this.memStore.values())
+      .sort((a, b) => {
+        const valA = String(a[orderByField] || '');
+        const valB = String(b[orderByField] || '');
+        return orderDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      })
+      .slice(0, limit);
+
+    return items as unknown as T[];
+  }
+
   async query(
     conditions: Array<{ field: string; op: '<' | '<=' | '==' | '!=' | '>=' | '>' | 'array-contains'; value: unknown }>,
     options?: { limit?: number; orderBy?: string; orderDir?: 'asc' | 'desc' }

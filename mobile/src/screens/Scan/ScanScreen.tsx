@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  ScrollView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../../hooks/useAuth';
@@ -18,10 +19,11 @@ import {cameraService} from '../../camera/CameraService';
 import {woodDetectionService} from '../../camera/vision/WoodDetectionService';
 import {PremiumButton} from '../../components/premium/PremiumButton';
 import {GanzaHeader} from '../../components/premium/GanzaHeader';
-import {GlassCard} from '../../components/premium/GlassCard';
-import {SPACING, FONT_SIZES, BORDER_RADIUS} from '../../constants/theme';
+import {AmbientBackground} from '../../components/premium/AmbientBackground';
+import {SPACING} from '../../constants/theme';
 import {BoardDetectionResult} from '../../types';
 import {compressImageUri} from '../../utils/formatters';
+import {checkPhotoQuality} from '../../utils/photoQuality';
 
 let VisionCamera: unknown = null;
 try {
@@ -37,12 +39,13 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [detectionResult, setDetectionResult] = useState<BoardDetectionResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [qualityWarning, setQualityWarning] = useState<string | null>(null);
   const [flashMode, setFlashMode] = useState<'on' | 'off'>('off');
   const [cameraType, setCameraType] = useState<'back' | 'front'>('back');
-  const [visionAvailable, setVisionAvailable] = useState(false);
+  const [visionzihari, setVisionzihari] = useState(false);
 
   useEffect(() => {
-    setVisionAvailable(!!VisionCamera);
+    setVisionzihari(!!VisionCamera);
     if (Platform.OS === 'web') {
       setHasCameraPermission(true);
       return;
@@ -65,24 +68,35 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
   const capturePhoto = useCallback(async () => {
     if (loading) return;
     setLoading(true);
+    setQualityWarning(null);
     try {
+      let uri: string | null = null;
       if (VisionCamera && cameraRef.current) {
         cameraService.setCameraRef(cameraRef.current);
         const image = await cameraService.captureImage({flashMode, quality: 'high'});
         if (!image) throw new Error(t('backendError'));
-        const compressed = await compressImageUri(image.uri, 1280, 0.8);
-        setCapturedImage(compressed);
-        await runDetection(compressed);
-        return;
+        uri = await compressImageUri(image.uri, 1280, 0.8);
+      } else {
+        const picked = await cameraService.pickFromLibrary();
+        if (!picked) {
+          setLoading(false);
+          return;
+        }
+        uri = await compressImageUri(picked.uri, 1280, 0.8);
       }
-      const picked = await cameraService.pickFromLibrary();
-      if (!picked) {
+      setCapturedImage(uri);
+      // Honest quality check before analysis
+      const q = checkPhotoQuality({requireReference: true});
+      if (!q.ok) {
+        setQualityWarning(q.message);
+        Alert.alert('Fata indi foto isobanutse.', q.recommendation || 'Ifoto ntisobanutse — ongera ufate hafi, mu rumuri.');
         setLoading(false);
         return;
       }
-      const compressed = await compressImageUri(picked.uri, 1280, 0.8);
-      setCapturedImage(compressed);
-      await runDetection(compressed);
+      if (q.needsReference) {
+        setQualityWarning('Ibipimo byagereranijwe — nta rurerure rugaragaye.');
+      }
+      await runDetection(uri);
     } catch (error) {
       const msg = error instanceof Error ? error.message : t('backendError');
       Alert.alert(t('error'), msg);
@@ -99,6 +113,8 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
     setCapturedImage(url);
     setLoading(true);
     try {
+      const q = checkPhotoQuality({requireReference: true});
+      if (q.needsReference) setQualityWarning('Ibipimo byagereranijwe — nta rurerure');
       await runDetection(url);
     } finally {
       setLoading(false);
@@ -113,7 +129,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
         const empty: BoardDetectionResult = {count: 0, confidence: 0, boards: [], timestamp: Date.now()};
         setDetectionResult(empty);
         setLoading(false);
-        Alert.alert(t('error'), 'Nta model ya AI irahuza kuri iyi telefone. Shyiramo umubare w\'imbaho wiboneye, hanyuma ukomeze.', [
+        Alert.alert('Nta mashini ibara imbaho ihujwe', 'Shyiramo umubare w\'imbaho wiboneye, hanyuma ukomeze.', [
           {text: t('cancel'), style: 'cancel'},
           {text: t('confirm'), onPress: () => navigateToResult(empty, imageUri)},
         ]);
@@ -125,7 +141,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
       await firebaseService.uploadImage(compressed, `scans/${user?.uid || 'anon'}/${Date.now()}.jpg`).catch(() => {});
       await firebaseService.uploadCameraResult({userId: user?.uid, businessId: user?.businessId, result, imageUri, timestamp: Date.now()}).catch(() => {});
       if (result.count === 0) Alert.alert(t('error'), t('noBoardsDetected'));
-      else if (result.confidence < 0.5) Alert.alert(t('error'), t('lowConfidence'));
+      else if (result.confidence < 0.5) Alert.alert('Birasaba kugenzura', 'Ntituzi neza — reba umubare mbere yo kubika.');
     } catch (error) {
       const msg = error instanceof Error ? error.message : t('noBoardsDetected');
       Alert.alert(t('error'), msg);
@@ -137,144 +153,152 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
   };
 
   const navigateToResult = (result: BoardDetectionResult, uri: string) => {
-    navigation.navigate('ScanResult', {result, imageUri: uri});
+    navigation.navigate('ScanResult', {result, imageUri: uri, qualityWarning});
   };
 
   if (hasCameraPermission === false) {
     return (
-      <View style={styles.permissionContainer}>
-        <View style={styles.permissionCard}>
-          <View style={styles.permissionIconBox}><Text style={styles.permissionIcon}>◈</Text></View>
-          <Text style={styles.permissionText}>{t('cameraPermissionDenied')}</Text>
-          <Text style={styles.permissionHint}>Kamera ntiyemerewe. Jya muri Settings uyemere.</Text>
-          <PremiumButton title={t('retry')} onPress={requestPermissions} size="lg" style={{marginTop: 16}} />
-          <PremiumButton title="Open Settings" onPress={() => Linking.openSettings()} variant="ghost" style={{marginTop: 8}} />
-          <PremiumButton title={t('takePhoto') + ' (Gallery)'} onPress={capturePhoto} variant="secondary" style={{marginTop: 16}} />
-        </View>
-      </View>
+      <AmbientBackground>
+        <ScrollView contentContainerStyle={styles.permissionContainer} showsVerticalScrollIndicator={false}>
+          <GanzaHeader variant="compact" />
+          <View style={styles.permissionCard}>
+            <View style={styles.permissionIconBox}><Text style={styles.permissionIcon}>◈</Text></View>
+            <Text style={styles.permissionText}>{t('cameraPermissionDenied')}</Text>
+            <Text style={styles.permissionHint}>Kamera ntibyemerewe. Fungura igenamiterere wemeze kamera.</Text>
+            <PremiumButton title={t('retry')} onPress={requestPermissions} size="lg" style={{marginTop: 16}} />
+            <PremiumButton title="Fungura Igenamiterere" onPress={() => Linking.openSettings()} variant="ghost" style={{marginTop: 8}} />
+            <PremiumButton title={t('takePhoto') + ' (Gallery)'} onPress={capturePhoto} variant="secondary" style={{marginTop: 16}} />
+          </View>
+        </ScrollView>
+      </AmbientBackground>
     );
   }
 
   if (Platform.OS === 'web') {
     return (
-      <View style={styles.container}>
-        <GanzaHeader variant="compact" />
-        <View style={styles.webHeader}>
-          <Text style={styles.webTitle}>{t('scanBoards')}</Text>
-          <Text style={styles.webGuide}>{t('scanGuideText')} • AI Vision</Text>
-        </View>
-        <View style={styles.webCameraBox}>
-          {capturedImage ? <Image source={{uri: capturedImage}} style={styles.webPreview} resizeMode="contain" /> : (
-            <View style={styles.webPlaceholder}>
-              <LinearGradient colors={['rgba(59,130,246,0.12)', 'rgba(255,255,255,0.02)'] as unknown as string[]} style={styles.webPlaceholderGlow} />
-              <View style={styles.webPlaceholderIconBox}><Text style={styles.webPlaceholderText}>⬢</Text></View>
-              <Text style={styles.webPlaceholderTitle}>GANZA AI Vision</Text>
-              <Text style={styles.webPlaceholderSub}>{t('scanGuide')}</Text>
-            </View>
-          )}
-          {detectionResult && <DetectionOverlay result={detectionResult} />}
-        </View>
-        <View style={styles.webControls}>
-          <label style={webStyles.fileLabel as unknown as object}>
-            <LinearGradient colors={['#60A5FA', '#3B82F6'] as unknown as string[]} style={webStyles.fileGrad as unknown as object} />
-            <span style={{position: 'relative'}}>{t('takePhoto')}</span>
-            <input type="file" accept="image/*" capture="environment" onChange={handleWebFile as unknown as () => void} style={webStyles.fileInput as unknown as object} />
-          </label>
-          {capturedImage && detectionResult && (
-            <PremiumButton title={`${t('detectedBoards')}: ${detectionResult.count}  •  ${t('confirm')}`} onPress={() => navigateToResult(detectionResult, capturedImage!)} size="lg" style={{marginTop: 12, width: '100%'}} />
-          )}
-          {capturedImage && <PremiumButton title={t('retakePhoto')} onPress={() => {setCapturedImage(null); setDetectionResult(null);}} variant="ghost" style={{marginTop: 8, width: '100%'}} />}
-        </View>
-        {loading && <View style={styles.loadingOverlay}><ActivityIndicator size="large" color="#60A5FA" /><Text style={styles.loadingText}>{t('loading')}</Text></View>}
-      </View>
+      <AmbientBackground>
+        <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 40}} showsVerticalScrollIndicator={false}>
+          <GanzaHeader variant="compact" />
+          <View style={styles.webHeader}>
+            <Text style={styles.webTitle}>{t('scanBoards')}</Text>
+            <Text style={styles.webGuide}>{t('scanGuideText')}</Text>
+          </View>
+          <View style={styles.webCameraBox}>
+            {capturedImage ? <Image source={{uri: capturedImage}} style={styles.webPreview} resizeMode="contain" /> : (
+              <View style={styles.webPlaceholder}>
+                <View style={styles.webPlaceholderIconBox}><Text style={styles.webPlaceholderText}>⬢</Text></View>
+                <Text style={styles.webPlaceholderTitle}>Fata ifoto y'imbaho</Text>
+                <Text style={styles.webPlaceholderSub}>{t('scanGuide')}</Text>
+              </View>
+            )}
+            {detectionResult && <DetectionOverlay result={detectionResult} />}
+          </View>
+          {qualityWarning && <View style={styles.qualityBanner}><Text style={styles.qualityText}>{qualityWarning}</Text></View>}
+          <View style={styles.webControls}>
+            <label style={webStyles.fileLabel as unknown as object}>
+              <LinearGradient colors={['#60A5FA', '#3B82F6'] as unknown as string[]} style={webStyles.fileGrad as unknown as object} />
+              <span style={{position: 'relative'}}>{t('takePhoto')}</span>
+              <input type="file" accept="image/*" capture="environment" onChange={handleWebFile as unknown as () => void} style={webStyles.fileInput as unknown as object} />
+            </label>
+            {capturedImage && detectionResult && (
+              <PremiumButton title={`${t('detectedBoards')}: ${detectionResult.count}  •  ${t('confirm')}`} onPress={() => navigateToResult(detectionResult, capturedImage!)} size="lg" style={{marginTop: 12, width: '100%'}} />
+            )}
+            {capturedImage && <PremiumButton title={t('retakePhoto')} onPress={() => {setCapturedImage(null); setDetectionResult(null); setQualityWarning(null);}} variant="ghost" style={{marginTop: 8, width: '100%'}} />}
+          </View>
+          {loading && <View style={styles.loadingOverlay}><ActivityIndicator size="large" color="#60A5FA" /><Text style={styles.loadingText}>{t('loading')}</Text></View>}
+        </ScrollView>
+      </AmbientBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <GanzaHeader variant="compact" />
-      <View style={styles.cameraWrap}>
-        {visionAvailable && VisionCamera ? (
-          // @ts-ignore
-          <VisionCamera ref={cameraRef as never} style={StyleSheet.absoluteFill} device={cameraType} isActive={hasCameraPermission === true && !capturedImage} photo enableZoomGesture />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, styles.fallbackCameraBg]}>
-            <View style={styles.fallbackIconBox}><Text style={styles.fallbackIcon}>⬢</Text></View>
-            <Text style={styles.fallbackTitle}>GANZA AI Vision</Text>
-            <Text style={styles.fallbackText}>Kamera izakora nyuma yo gushyira react-native-vision-camera</Text>
-            <Text style={styles.fallbackSub}>Koresha Gallery kugira ngo uhitemo ifoto nyayo.</Text>
-            <PremiumButton title="Hitamo ifoto" onPress={capturePhoto} size="lg" style={{marginTop: 16, minWidth: 180}} />
-          </View>
-        )}
+    <AmbientBackground>
+      <View style={styles.container}>
+        {/* Header scrolls? In this screen header is above camera, camera takes rest — header itself is NOT fixed inside cameraWrap */}
+        <GanzaHeader variant="compact" />
+        <View style={styles.cameraWrap}>
+          {visionzihari && VisionCamera ? (
+            // @ts-ignore
+            <VisionCamera ref={cameraRef as never} style={StyleSheet.absoluteFill} device={cameraType} isActive={hasCameraPermission === true && !capturedImage} photo enableZoomGesture />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, styles.fallbackCameraBg]}>
+              <View style={styles.fallbackIconBox}><Text style={styles.fallbackIcon}>⬢</Text></View>
+              <Text style={styles.fallbackTitle}>Fata ifoto y'imbaho</Text>
+              <Text style={styles.fallbackSub}>Hitamo ifoto — GANZA izabara imbaho</Text>
+              <PremiumButton title="Hitamo ifoto" onPress={capturePhoto} size="lg" style={{marginTop: 16, minWidth: 180}} />
+            </View>
+          )}
 
-        {/* Premium guide frame — thin luminous borders */}
-        <View style={styles.guideFrame} pointerEvents="none">
-          <View style={styles.guideTop}>
-            <View style={styles.guidePill}><View style={styles.guideDot} /><Text style={styles.guidePillText}>AI Vision • Auto-detect</Text></View>
-          </View>
-          <View style={styles.frameBox}>
-            <View style={[styles.corner, styles.topLeft]} />
-            <View style={[styles.corner, styles.topRight]} />
-            <View style={[styles.corner, styles.bottomLeft]} />
-            <View style={[styles.corner, styles.bottomRight]} />
-            <View style={styles.frameInnerGlow} />
-          </View>
-          <View style={styles.guideBottom}>
-            <Text style={styles.guideText}>{t('scanGuideText')}</Text>
-            <Text style={styles.guideSub}>Shyira imbaho neza • AI irabara automatically</Text>
-          </View>
-        </View>
-
-        {capturedImage && (
-          <View style={StyleSheet.absoluteFill}>
-            <Image source={{uri: capturedImage}} style={StyleSheet.absoluteFill} resizeMode="cover" />
-            {detectionResult && <DetectionOverlay result={detectionResult} />}
-            <View style={styles.captureScrim} />
-          </View>
-        )}
-
-        {loading && <View style={styles.loadingOverlay}><View style={styles.loadingCard}><ActivityIndicator size="large" color="#60A5FA" /><Text style={styles.loadingText}>AI irasesengura...</Text><Text style={styles.loadingSub}>Kubara imbaho • Confidence check</Text></View></View>}
-      </View>
-
-      <View style={styles.controls}>
-        <TouchableOpacity style={styles.controlButton} onPress={() => setFlashMode(flashMode === 'on' ? 'off' : 'on')} activeOpacity={0.8}>
-          <View style={[styles.controlIconBox, flashMode === 'on' && styles.controlIconActive]}><Text style={styles.controlIcon}>{flashMode === 'on' ? '⚡' : '◈'}</Text></View>
-          <Text style={styles.controlLabel}>{t('flash')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.captureButton} onPress={capturePhoto} disabled={loading} activeOpacity={0.88}>
-          <View style={styles.captureOuter}>
-            <LinearGradient colors={['#60A5FA', '#2563EB'] as unknown as string[]} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.captureGradient}>
-              <View style={styles.captureInner} />
-              <View style={styles.captureSheen} />
-            </LinearGradient>
-          </View>
-          <Text style={styles.captureLabel}>Fata</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.controlButton} onPress={() => setCameraType(cameraType === 'back' ? 'front' : 'back')} activeOpacity={0.8}>
-          <View style={styles.controlIconBox}><Text style={styles.controlIcon}>⬡</Text></View>
-          <Text style={styles.controlLabel}>{t('switchCamera')}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {capturedImage && detectionResult && (
-        <View style={styles.resultOverlay}>
-          <LinearGradient colors={['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.04)'] as unknown as string[]} style={StyleSheet.absoluteFill} />
-          <View style={styles.resultTopRow}>
-            <View style={styles.resultIconBox}><Text style={styles.resultIcon}>⬢</Text></View>
-            <View style={{flex: 1}}>
-              <Text style={styles.resultText}>{t('boardsDetected', {count: detectionResult.count})}</Text>
-              <Text style={styles.confidenceText}>{Math.round(detectionResult.confidence * 100)}% confidence • {detectionResult.boards.length} bounding boxes • AI Vision</Text>
+          <View style={styles.guideFrame} pointerEvents="none">
+            <View style={styles.guideTop}>
+              <View style={styles.guidePill}><View style={styles.guideDot} /><Text style={styles.guidePillText}>Fata ifoto • Shyira imbaho hagati neza</Text></View>
+            </View>
+            <View style={styles.frameBox}>
+              <View style={[styles.corner, styles.topLeft]} />
+              <View style={[styles.corner, styles.topRight]} />
+              <View style={[styles.corner, styles.bottomLeft]} />
+              <View style={[styles.corner, styles.bottomRight]} />
+            </View>
+            <View style={styles.guideBottom}>
+              <Text style={styles.guideText}>{t('scanGuideText')}</Text>
+              <Text style={styles.guideSub}>Shyira rurerure hafi y'imbaho niba ushaka ibipimo nyabyo</Text>
             </View>
           </View>
-          <View style={styles.resultActions}>
-            <PremiumButton title={t('confirm')} onPress={() => navigateToResult(detectionResult, capturedImage!)} style={{flex: 1}} size="md" />
-            <PremiumButton title={t('retakePhoto')} onPress={() => {setCapturedImage(null); setDetectionResult(null);}} variant="ghost" style={{flex: 1, marginLeft: 8}} size="md" />
-          </View>
+
+          {capturedImage && (
+            <View style={StyleSheet.absoluteFill}>
+              <Image source={{uri: capturedImage}} style={StyleSheet.absoluteFill} resizeMode="cover" />
+              {detectionResult && <DetectionOverlay result={detectionResult} />}
+              <View style={styles.captureScrim} />
+            </View>
+          )}
+
+          {loading && <View style={styles.loadingOverlay}><View style={styles.loadingCard}><ActivityIndicator size="large" color="#60A5FA" /><Text style={styles.loadingText}>Turimo gusesengura ifoto...</Text><Text style={styles.loadingSub}>Turimo kubara imbaho</Text></View></View>}
         </View>
-      )}
-    </View>
+
+        {qualityWarning && (
+          <View style={styles.qualityBanner}><Text style={styles.qualityText}>{qualityWarning}</Text></View>
+        )}
+
+        <View style={styles.controls}>
+          <TouchableOpacity style={styles.controlButton} onPress={() => setFlashMode(flashMode === 'on' ? 'off' : 'on')} activeOpacity={0.8}>
+            <View style={[styles.controlIconBox, flashMode === 'on' && styles.controlIconActive]}><Text style={styles.controlIcon}>{flashMode === 'on' ? '⚡' : '◈'}</Text></View>
+            <Text style={styles.controlLabel}>{t('flash')}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.captureButton} onPress={capturePhoto} disabled={loading} activeOpacity={0.88}>
+            <View style={styles.captureOuter}>
+              <LinearGradient colors={['#60A5FA', '#2563EB'] as unknown as string[]} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.captureGradient}>
+                <View style={styles.captureInner} />
+              </LinearGradient>
+            </View>
+            <Text style={styles.captureLabel}>Fata ifoto</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.controlButton} onPress={() => setCameraType(cameraType === 'back' ? 'front' : 'back')} activeOpacity={0.8}>
+            <View style={styles.controlIconBox}><Text style={styles.controlIcon}>⬡</Text></View>
+            <Text style={styles.controlLabel}>{t('switchCamera')}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {capturedImage && detectionResult && (
+          <View style={styles.resultOverlay}>
+            <View style={styles.resultTopRow}>
+              <View style={styles.resultIconBox}><Text style={styles.resultIcon}>⬢</Text></View>
+              <View style={{flex: 1}}>
+                <Text style={styles.resultText}>{t('boardsDetected', {count: detectionResult.count})}</Text>
+                <Text style={styles.confidenceText}>{Math.round(detectionResult.confidence * 100)}% confidence • {detectionResult.boards.length} boxes</Text>
+              </View>
+            </View>
+            <View style={styles.resultActions}>
+              <PremiumButton title={t('confirm')} onPress={() => navigateToResult(detectionResult, capturedImage!)} style={{flex: 1}} size="md" />
+              <PremiumButton title={t('retakePhoto')} onPress={() => {setCapturedImage(null); setDetectionResult(null); setQualityWarning(null);}} variant="ghost" style={{flex: 1, marginLeft: 8}} size="md" />
+            </View>
+            {qualityWarning && <Text style={styles.qualityHint}>Fata indi foto isobanutse niba confidence iri hasi</Text>}
+          </View>
+        )}
+      </View>
+    </AmbientBackground>
   );
 }
 
@@ -293,9 +317,7 @@ function DetectionOverlay({result}: {result: BoardDetectionResult}) {
               height: `${b.boundingBox.height * 100}%`,
             },
           ]}
-        >
-          <View style={styles.bboxCorner} />
-        </View>
+        />
       ))}
     </View>
   );
@@ -320,7 +342,7 @@ const webStyles: Record<string, object> = {
 
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: '#040A1B'},
-  permissionContainer: {flex: 1, backgroundColor: '#040A1B', justifyContent: 'center', padding: SPACING.xl, alignItems: 'center'},
+  permissionContainer: {flex: 1, backgroundColor: '#040A1B', justifyContent: 'center', padding: SPACING.xl, alignItems: 'center', minHeight: 600},
   permissionCard: {width: '100%', maxWidth: 360, padding: 20, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center'},
   permissionIconBox: {width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(239,68,68,0.10)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.16)', justifyContent: 'center', alignItems: 'center', marginBottom: 12},
   permissionIcon: {fontSize: 18, color: '#FCA5A5'},
@@ -331,25 +353,23 @@ const styles = StyleSheet.create({
   fallbackIconBox: {width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(59,130,246,0.12)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.18)', justifyContent: 'center', alignItems: 'center', marginBottom: 12},
   fallbackIcon: {fontSize: 22, color: '#93C5FD'},
   fallbackTitle: {color: '#F1F6FF', fontSize: 16, fontWeight: '800', letterSpacing: 0.4},
-  fallbackText: {color: '#8FA2BB', fontSize: 13, textAlign: 'center', fontWeight: '600', marginTop: 8},
   fallbackSub: {color: '#6B84A0', fontSize: 12, textAlign: 'center', marginTop: 6},
   guideFrame: {flex: 1, justifyContent: 'space-between', alignItems: 'center', paddingVertical: 20},
   guideTop: {alignItems: 'center'},
   guidePill: {flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)'},
   guideDot: {width: 6, height: 6, borderRadius: 3, backgroundColor: '#60A5FA', marginRight: 6},
-  guidePillText: {fontSize: 10, fontWeight: '700', color: '#EAF2FD', letterSpacing: 0.5, textTransform: 'uppercase'},
+  guidePillText: {fontSize: 10, fontWeight: '700', color: '#EAF2FD', letterSpacing: 0.4, textTransform: 'uppercase'},
   frameBox: {width: 280, height: 280, position: 'relative', justifyContent: 'center', alignItems: 'center'},
-  frameInnerGlow: {position: 'absolute', top: 20, left: 20, right: 20, bottom: 20, borderWidth: 1, borderColor: 'rgba(96,165,250,0.06)', borderRadius: 16},
-  corner: {position: 'absolute', width: 36, height: 36, borderColor: 'rgba(96,165,250,0.95)', borderWidth: 2, shadowColor: '#60A5FA', shadowOpacity: 0.35, shadowRadius: 8},
-  topLeft: {top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 16},
-  topRight: {top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 16},
-  bottomLeft: {bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 16},
-  bottomRight: {bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 16},
-  guideBottom: {alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)'},
-  guideText: {color: '#F1F6FF', fontSize: 13, fontWeight: '700', textAlign: 'center'},
-  guideSub: {color: '#8FA2BB', fontSize: 11, textAlign: 'center', marginTop: 4},
+  corner: {position: 'absolute', width: 32, height: 32, borderColor: 'rgba(96,165,250,0.95)', borderWidth: 1.5},
+  topLeft: {top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 14},
+  topRight: {top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 14},
+  bottomLeft: {bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 14},
+  bottomRight: {bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 14},
+  guideBottom: {alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)'},
+  guideText: {color: '#F1F6FF', fontSize: 12, fontWeight: '700', textAlign: 'center'},
+  guideSub: {color: '#8FA2BB', fontSize: 11, textAlign: 'center', marginTop: 3},
   captureScrim: {position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(4,10,27,0.12)'},
-  controls: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.lg, paddingVertical: 14, backgroundColor: 'rgba(5,10,27,0.92)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)'},
+  controls: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.lg, paddingVertical: 12, backgroundColor: 'rgba(5,10,27,0.92)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)'},
   controlButton: {alignItems: 'center', minWidth: 64},
   controlIconBox: {width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center'},
   controlIconActive: {backgroundColor: 'rgba(59,130,246,0.14)', borderColor: 'rgba(96,165,250,0.22)'},
@@ -357,20 +377,21 @@ const styles = StyleSheet.create({
   controlLabel: {fontSize: 10, color: '#8FA2BB', marginTop: 6, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase'},
   captureButton: {alignItems: 'center'},
   captureOuter: {width: 72, height: 72, borderRadius: 36, padding: 3, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)'},
-  captureGradient: {flex: 1, borderRadius: 33, justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative'},
+  captureGradient: {flex: 1, borderRadius: 33, justifyContent: 'center', alignItems: 'center', overflow: 'hidden'},
   captureInner: {width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.92)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)'},
-  captureSheen: {position: 'absolute', top: 0, left: 0, right: 0, height: 18, backgroundColor: 'rgba(255,255,255,0.18)'},
   captureLabel: {fontSize: 10, fontWeight: '800', color: '#93C5FD', marginTop: 6, letterSpacing: 0.6, textTransform: 'uppercase'},
-  resultOverlay: {position: 'absolute', bottom: 96, left: 12, right: 12, borderRadius: 20, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', overflow: 'hidden', backgroundColor: 'rgba(8,16,38,0.78)'},
+  resultOverlay: {position: 'absolute', bottom: 96, left: 12, right: 12, borderRadius: 20, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', overflow: 'hidden', backgroundColor: 'rgba(8,16,38,0.88)'},
   resultTopRow: {flexDirection: 'row', alignItems: 'center', marginBottom: 12},
   resultIconBox: {width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(59,130,246,0.14)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.18)', justifyContent: 'center', alignItems: 'center', marginRight: 10},
   resultIcon: {fontSize: 14, color: '#93C5FD'},
   resultText: {fontSize: 14, fontWeight: '800', color: '#F1F6FF'},
   confidenceText: {fontSize: 11, color: '#8FA2BB', marginTop: 2},
   resultActions: {flexDirection: 'row'},
-  bbox: {position: 'absolute', borderWidth: 1.5, borderColor: '#60A5FA', backgroundColor: 'rgba(96,165,250,0.10)', borderRadius: 6, shadowColor: '#60A5FA', shadowOpacity: 0.35, shadowRadius: 6},
-  bboxCorner: {position: 'absolute', top: -1, left: -1, width: 10, height: 10, borderTopWidth: 2, borderLeftWidth: 2, borderColor: '#93C5FD', borderTopLeftRadius: 6},
-  loadingOverlay: {...StyleSheet.absoluteFill, backgroundColor: 'rgba(4,10,27,0.72)', justifyContent: 'center', alignItems: 'center'},
+  qualityBanner: {backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.18)', paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', justifyContent: 'center'},
+  qualityText: {fontSize: 11, color: '#FCD34D', fontWeight: '600', textAlign: 'center'},
+  qualityHint: {fontSize: 11, color: '#8FA2BB', marginTop: 8, textAlign: 'center'},
+  bbox: {position: 'absolute', borderWidth: 1.5, borderColor: '#60A5FA', backgroundColor: 'rgba(96,165,250,0.10)', borderRadius: 6},
+  loadingOverlay: {...StyleSheet.absoluteFill, backgroundColor: 'rgba(4,10,27,0.68)', justifyContent: 'center', alignItems: 'center'},
   loadingCard: {padding: 20, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center', minWidth: 200},
   loadingText: {color: '#F1F6FF', marginTop: 12, fontWeight: '700', fontSize: 13},
   loadingSub: {color: '#8FA2BB', marginTop: 4, fontSize: 11},
@@ -379,11 +400,10 @@ const styles = StyleSheet.create({
   webGuide: {fontSize: 12, color: '#8FA2BB', marginTop: 4},
   webCameraBox: {flex: 1, margin: 12, backgroundColor: '#0A1930', borderRadius: 20, overflow: 'hidden', minHeight: 380, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center', position: 'relative'},
   webPreview: {width: '100%', height: '100%'},
-  webPlaceholder: {alignItems: 'center', padding: 32, position: 'relative'},
-  webPlaceholderGlow: {position: 'absolute', top: -40, left: -40, right: -40, height: 160, borderRadius: 80, opacity: 0.5},
+  webPlaceholder: {alignItems: 'center', padding: 32},
   webPlaceholderIconBox: {width: 64, height: 64, borderRadius: 18, backgroundColor: 'rgba(59,130,246,0.12)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.18)', justifyContent: 'center', alignItems: 'center', marginBottom: 12},
   webPlaceholderText: {fontSize: 24, color: '#93C5FD'},
-  webPlaceholderTitle: {fontSize: 14, fontWeight: '800', color: '#F1F6FF', letterSpacing: 0.4},
+  webPlaceholderTitle: {fontSize: 14, fontWeight: '800', color: '#F1F6FF'},
   webPlaceholderSub: {color: '#8FA2BB', fontSize: 12, marginTop: 4, textAlign: 'center'},
   webControls: {padding: 16, alignItems: 'center'},
 });

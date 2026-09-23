@@ -34,7 +34,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-8 py-3.5 bg-white/95 dark:bg-black/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 select-none">
+    <header className="flex items-center justify-between px-4 sm:px-8 py-3.5 bg-white dark:bg-black border-b border-zinc-200 dark:border-zinc-800 select-none">
       {/* Left: Mobile Logo / Page Title */}
       <div className="flex items-center gap-3">
         <div className="md:hidden">

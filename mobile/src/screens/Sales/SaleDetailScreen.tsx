@@ -21,7 +21,7 @@ export default function SaleDetailScreen({route}: Props) {
         <GlassCard title="Transaction" subtitle={`${new Date(sale.createdAt).toLocaleString('rw-RW')}`} icon="◆" variant="luminous">
           <View style={styles.row}><Text style={styles.label}>Umukiriya</Text><Text style={styles.value}>{sale.customerName}</Text></View>
           <View style={styles.row}><Text style={styles.label}>Igicuruzwa</Text><Text style={styles.value}>{sale.itemName}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Umubare</Text><Text style={styles.value}>{sale.quantity} pcs</Text></View>
+          <View style={styles.row}><Text style={styles.label}>Umubare</Text><Text style={styles.value}>{sale.quantity} imbaho</Text></View>
           <View style={styles.row}><Text style={styles.label}>Igiciro /pc</Text><Text style={styles.value}>{formatRWF(sale.unitPrice)}</Text></View>
           <View style={[styles.row, styles.totalRow]}>
             <Text style={[styles.label, styles.totalLabel]}>Total</Text>

@@ -103,10 +103,15 @@ export default function SalesScreen({navigation}: {navigation: {navigate: (s: st
                 createdAt: Date.now(),
               };
               await firebaseService.saveSale(sale);
-              const updatedItem = {
+              const remaining = selectedInventoryItem.quantity - qty;
+              const factor = selectedInventoryItem.quantity > 0 ? remaining / selectedInventoryItem.quantity : 0;
+              const updatedItem: any = {
                 ...selectedInventoryItem,
-                quantity: selectedInventoryItem.quantity - qty,
-                totalValue: (selectedInventoryItem.quantity - qty) * selectedInventoryItem.unitPrice,
+                quantity: remaining,
+                totalValue: remaining * selectedInventoryItem.unitPrice,
+                volumeM3: (selectedInventoryItem as any).volumeM3 ? (selectedInventoryItem as any).volumeM3 * factor : undefined,
+                areaM2: (selectedInventoryItem as any).areaM2 ? (selectedInventoryItem as any).areaM2 * factor : undefined,
+                totalLengthM: (selectedInventoryItem as any).totalLengthM ? (selectedInventoryItem as any).totalLengthM * factor : undefined,
                 updatedAt: Date.now(),
               };
               await firebaseService.saveInventoryItem(updatedItem);
@@ -130,10 +135,10 @@ export default function SalesScreen({navigation}: {navigation: {navigate: (s: st
 
   return (
     <AmbientBackground>
-      <GanzaHeader variant="compact" onNotificationPress={() => navigation.navigate('Notifications')} onProfilePress={() => navigation.navigate('Profile')} />
       <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 100}} showsVerticalScrollIndicator={false}>
+        <GanzaHeader variant="compact" onNotificationPress={() => navigation.navigate('Notifications')} onProfilePress={() => navigation.navigate('Profile')} />
         <Text style={styles.title}>{t('sales')}</Text>
-        <Text style={styles.subtitle}>Gurisha • AI igakurikirana stock • Kinyarwanda-first</Text>
+        <Text style={styles.subtitle}>Gurisha • Hitamo stock • Kugabanya ingano • Kuvugurura agaciro</Text>
 
         <GlassCard title="Hitamo igicuruzwa" subtitle="Ibihari muri stock" icon="⬡">
           {inventory.filter(i => i.quantity > 0).length === 0 ? (
@@ -156,7 +161,7 @@ export default function SalesScreen({navigation}: {navigation: {navigate: (s: st
                     <View style={[styles.itemIconBox, selectedItem === item.id && styles.itemIconActive]}><Text style={styles.itemIcon}>⬢</Text></View>
                     <View>
                       <Text style={styles.itemName}>{item.name}</Text>
-                      <Text style={styles.itemStock}>{item.quantity} pcs • {formatRWF(item.unitPrice)}/pc</Text>
+                      <Text style={styles.itemStock}>{item.quantity} imbaho • {formatRWF(item.unitPrice)}/pc</Text>
                     </View>
                   </View>
                   <View style={styles.itemRight}>
@@ -186,7 +191,7 @@ export default function SalesScreen({navigation}: {navigation: {navigate: (s: st
             </TouchableOpacity>
             <View style={styles.qtyInputWrap}>
               <TextInput style={styles.qtyInput} value={quantity} onChangeText={setQuantity} keyboardType={Platform.OS === 'web' ? 'default' : 'numeric'} placeholder="0" placeholderTextColor="#5E728C" />
-              <Text style={styles.qtySub}>{selectedInventoryItem ? `${selectedInventoryItem.quantity} available` : 'Hitamo'}</Text>
+              <Text style={styles.qtySub}>{selectedInventoryItem ? `${selectedInventoryItem.quantity} available` : 'Hitamo}</Text>
             </View>
             <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnPrimary]} onPress={() => setQuantity(String(qtyNum + 1))} activeOpacity={0.85}>
               <LinearGradient colors={['#60A5FA', '#3B82F6'] as unknown as string[]} style={StyleSheet.absoluteFill} />
@@ -210,7 +215,7 @@ export default function SalesScreen({navigation}: {navigation: {navigate: (s: st
               <LinearGradient colors={['rgba(59,130,246,0.10)', 'rgba(255,255,255,0.03)'] as unknown as string[]} style={StyleSheet.absoluteFill} />
               <View>
                 <Text style={styles.summaryLabel}>{qtyNum} × {formatRWF(selectedInventoryItem.unitPrice)}</Text>
-                <Text style={styles.summaryHint}>AI calculated • Precise</Text>
+                <Text style={styles.summaryHint}>Calculated • {qtyNum} × price</Text>
               </View>
               <Text style={styles.summaryTotal}>{formatRWF(totalValue)}</Text>
             </View>
@@ -228,7 +233,7 @@ export default function SalesScreen({navigation}: {navigation: {navigate: (s: st
           <Text style={styles.empty}>{t('loading')}</Text>
         ) : sales.length === 0 ? (
           <GlassCard padding="lg">
-            <Text style={styles.empty}>Nta gurisha riraba • AI izabikurikirana</Text>
+            <Text style={styles.empty}>Nta gurisha riraba</Text>
           </GlassCard>
         ) : (
           sales
@@ -240,7 +245,7 @@ export default function SalesScreen({navigation}: {navigation: {navigate: (s: st
                 <View style={styles.saleIconBox}><Text style={styles.saleIcon}>◆</Text></View>
                 <View style={{flex: 1}}>
                   <Text style={styles.saleName}>{sale.itemName}</Text>
-                  <Text style={styles.saleMeta}>{sale.customerName} • {sale.quantity} pcs • {new Date(sale.createdAt).toLocaleDateString('rw-RW')}</Text>
+                  <Text style={styles.saleMeta}>{sale.customerName} • {sale.quantity} imbaho • {new Date(sale.createdAt).toLocaleDateString('rw-RW')}</Text>
                 </View>
                 <View style={{alignItems: 'flex-end'}}>
                   <Text style={styles.saleAmount}>{formatRWF(sale.totalValue)}</Text>

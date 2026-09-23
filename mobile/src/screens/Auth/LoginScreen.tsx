@@ -37,21 +37,21 @@ export default function LoginScreen({navigation}: any) {
             <View style={styles.logoGlow} />
           </View>
           <Text style={styles.ganza}>GANZA</Text>
-          <View style={styles.premiumPill}><Text style={styles.premiumPillText}>PREMIUM • FLAGSHIP AI</Text></View>
-          <Text style={styles.tagline}>Autonomous AI Agent</Text>
-          <Text style={styles.taglineSub}>Yizewe • Yihuse • Ifite ubwenge • Kinyarwanda-first</Text>
+          <View style={styles.premiumPill}><Text style={styles.premiumPillText}>PREMIUM • WOOD INVENTORY</Text></View>
+          <Text style={styles.tagline}>Manage your wood stock easily.</Text>
+          <Text style={styles.taglineSub}>Calm • Premium • Simple • Kinyarwanda-first</Text>
         </View>
 
         <View style={styles.form}>
           <LinearGradient colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.03)'] as unknown as string[]} style={styles.formGlow} />
           <View style={styles.formHighlight} />
           <Text style={styles.formTitle}>Kwinjira</Text>
-          <Text style={styles.formSub}>Injira muri GANZA Premium — Agent yawe irakuzanye</Text>
+          <Text style={styles.formSub}>Injira muri GANZA — wood inventory & calculation</Text>
 
           <PremiumInput value={email} onChangeText={setEmail} placeholder="email@ganza.rw" label={t('email')} icon="◈" />
           <PremiumInput value={password} onChangeText={setPassword} placeholder="••••••••" secureTextEntry label={t('password')} icon="⬣" />
 
-          <PremiumButton title={t('login')} onPress={handleLogin} size="lg" loading={loading} style={styles.loginButton} icon="✦" />
+          <PremiumButton title={t('login')} onPress={handleLogin} size="lg" loading={loading} style={styles.loginButton} />
 
           <View style={styles.dividerRow}>
             <View style={styles.divider} />

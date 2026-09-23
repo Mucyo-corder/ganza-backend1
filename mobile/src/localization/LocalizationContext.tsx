@@ -21,7 +21,9 @@ export const LocalizationProvider: React.FC<{children: React.ReactNode}> = ({chi
 
   const t = useCallback(
     (key: string, params?: Record<string, string | number>): string => {
-      const text = translations[language][key] || translations['en'][key] || key;
+      const dict = translations[language] as Record<string, string>;
+      const fallback = translations['en'] as Record<string, string>;
+      const text = dict[key] || fallback[key] || key;
       if (params) {
         return Object.entries(params).reduce(
           (acc, [k, v]) => acc.replace(`{${k}}`, String(v)),

@@ -45,8 +45,8 @@ export const DailyReportScreen: React.FC = () => {
 • Inyungu y'uyu munsi: *${(dashboard?.todayProfit || 430000).toLocaleString()} RWF*
 
 📦 *Imbaho:*
-• Imbaho zasohotse: *65 pieces*
-• Imbaho zinjiye: *50 pieces*
+• Imbaho zasohotse: *65 imbaho*
+• Imbaho zinjiye: *50 imbaho*
 • Agaciro k'imbaho zose mu bubiko: *${(dashboard?.totalStockValue || 48900000).toLocaleString()} RWF*
 
 ✅ Raporo yakozwe neza na WoodApp Rwanda.`;
@@ -168,12 +168,12 @@ export const DailyReportScreen: React.FC = () => {
           <div className="grid grid-cols-3 gap-3">
             <div className="p-3.5 rounded-xl bg-[#3A271E]/80 border border-[#B77A45]/30">
               <span className="text-xs text-[#E2B994] block">Zasohotse (Kugurisha)</span>
-              <span className="font-display font-extrabold text-xl text-white">65 pcs</span>
+              <span className="font-display font-extrabold text-xl text-white">65 imbaho</span>
             </div>
 
             <div className="p-3.5 rounded-xl bg-[#3A271E]/80 border border-[#B77A45]/30">
               <span className="text-xs text-[#E2B994] block">Zinjiye (Kugura)</span>
-              <span className="font-display font-extrabold text-xl text-emerald-400">+50 pcs</span>
+              <span className="font-display font-extrabold text-xl text-emerald-400">+50 imbaho</span>
             </div>
 
             <div className="p-3.5 rounded-xl bg-[#3A271E]/80 border border-[#B77A45]/30">

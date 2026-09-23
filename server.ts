@@ -17,6 +17,7 @@ import { apiRouter } from './src/routes/index.ts';
 import { errorHandler } from './src/middleware/error.middleware.ts';
 import { apiRateLimiter } from './src/middleware/rateLimiter.middleware.ts';
 import { logger } from './src/utils/logger.ts';
+import { ReportService } from './src/services/report.service.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -106,6 +107,9 @@ async function startServer() {
     const server = app.listen(PORT, '0.0.0.0', () => {
       logger.info(`🌲 WoodApp Backend Server yashyizwe ku muhanda kuri port ${PORT}`);
       logger.info(`Health check iraboneka kuri http://localhost:${PORT}/health`);
+      const reportTimer = ReportService.startDailyReportScheduler(60 * 1000);
+      logger.info(`Daily report scheduler started with interval ${60 * 1000}ms`);
+      server.on('close', () => clearInterval(reportTimer));
     });
 
     // Graceful Shutdown

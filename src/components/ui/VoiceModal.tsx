@@ -201,7 +201,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose }) => {
                   Ingano
                 </span>
                 <span className="font-bold text-lg text-[#241A15] dark:text-white">
-                  {parsed.quantity} pieces
+                  {parsed.quantity} imbaho
                 </span>
               </div>
             </div>

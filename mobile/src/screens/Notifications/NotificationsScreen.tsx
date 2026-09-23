@@ -8,10 +8,10 @@ import {SPACING} from '../../constants/theme';
 
 const NOTIFS = [
   {id: '1', title: 'Stock nke — Imbaho 3 gasigaye', desc: 'GANZA AI iragusaba kongera stock vuba.', time: '10 min ago', type: 'warning', icon: '⬢'},
-  {id: '2', title: 'Igurisha ryemejwe', desc: 'Jean Bosco • 12 pcs • 180,000 RWF — Synced to computer.', time: '1h ago', type: 'success', icon: '◆'},
+  {id: '2', title: 'Igurisha ryemejwe', desc: 'Jean Bosco • 12 imbaho • 180,000 RWF — Byahujwe to computer.', time: '1h ago', type: 'success', icon: '◆'},
   {id: '3', title: 'Sync yakozwe neza', desc: 'Telephone ↔ Computer • 24 items • Cloud backup done.', time: '3h ago', type: 'info', icon: '⬡'},
   {id: '4', title: 'Raporo y’ukwezi yiteguye', desc: 'PDF • 2.4 MB • AI insight included.', time: 'Yesterday', type: 'info', icon: '▭'},
-  {id: '5', title: 'Igikoresho gishya kihujwe', desc: 'iPad • Safari • Synced via QR.', time: '2 days ago', type: 'success', icon: '◈'},
+  {id: '5', title: 'Igikoresho gishya kihujwe', desc: 'iPad • Safari • Byahujwe via QR.', time: '2 days ago', type: 'success', icon: '◈'},
 ];
 
 export default function NotificationsScreen({navigation}: {navigation: {goBack: () => void; navigate: (s:string)=>void}}) {

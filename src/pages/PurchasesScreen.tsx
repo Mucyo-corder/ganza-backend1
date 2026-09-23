@@ -148,7 +148,7 @@ export const PurchasesScreen: React.FC = () => {
                 </div>
                 <div className="text-xs text-[#75675C] dark:text-stone-400 flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-[#8A5A38] dark:text-[#E2B994]">
-                    {purchase.items?.[0]?.species || 'Imbaho'} ({purchase.items?.[0]?.quantity || 0} pcs • {purchase.items?.[0]?.dimensionsStr || ''})
+                    {purchase.items?.[0]?.species || 'Imbaho'} ({purchase.items?.[0]?.quantity || 0} imbaho • {purchase.items?.[0]?.dimensionsStr || ''})
                   </span>
                   <span>•</span>
                   <span>{purchase.createdAt}</span>

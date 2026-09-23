@@ -7,7 +7,7 @@
  */
 
 import { FirestoreRepository } from '../repositories/firestore.repository.ts';
-import { Sale, Purchase, Expense, StockMovement, Customer, Supplier, DailyReport } from '../types/index.ts';
+import { Business, Sale, Purchase, Expense, StockMovement, Customer, Supplier, DailyReport } from '../types/index.ts';
 import { formatRwf } from '../utils/i18n.ts';
 
 const reportRepo = new FirestoreRepository<DailyReport>('daily_reports');
@@ -17,10 +17,25 @@ const expenseRepo = new FirestoreRepository<Expense>('expenses');
 const movementRepo = new FirestoreRepository<StockMovement>('stock_movements');
 const customerRepo = new FirestoreRepository<Customer>('customers');
 const supplierRepo = new FirestoreRepository<Supplier>('suppliers');
+const businessRepo = new FirestoreRepository<Business>('businesses');
 
 export class ReportService {
   static async generateDailyReport(businessId: string, targetDateStr?: string): Promise<DailyReport> {
     const targetDate = targetDateStr ? new Date(targetDateStr) : new Date();
+    const dateKey = targetDate.toISOString().slice(0, 10);
+
+    const existing = await reportRepo.query(
+      [
+        { field: 'businessId', op: '==', value: businessId },
+        { field: 'reportDate', op: '==', value: dateKey },
+      ],
+      { limit: 1 }
+    );
+
+    if (existing.length > 0) {
+      return existing[0];
+    }
+
     const start = new Date(targetDate);
     start.setHours(0, 0, 0, 0);
     const end = new Date(targetDate);
@@ -115,6 +130,31 @@ export class ReportService {
 
   static async getDailyReports(businessId: string, limit = 30): Promise<DailyReport[]> {
     return reportRepo.findByBusiness(businessId, limit, 'reportDate', 'desc');
+  }
+
+  static async generateDailyReportsForAllBusinesses(): Promise<DailyReport[]> {
+    const businesses = await businessRepo.findAll(500, 'createdAt', 'desc');
+    const reports: DailyReport[] = [];
+
+    for (const business of businesses) {
+      const report = await this.generateDailyReport(business.id);
+      reports.push(report);
+    }
+
+    return reports;
+  }
+
+  static startDailyReportScheduler(intervalMs = 60 * 1000) {
+    const run = async () => {
+      try {
+        await this.generateDailyReportsForAllBusinesses();
+      } catch (error) {
+        console.error('Daily report generation failed:', error);
+      }
+    };
+
+    run();
+    return setInterval(run, intervalMs);
   }
 
   static async getMonthlyReport(businessId: string, year: number, month: number) {

@@ -40,13 +40,13 @@ export default function RegisterScreen({navigation}: any) {
             </LinearGradient>
           </View>
           <Text style={styles.ganza}>GANZA</Text>
-          <Text style={styles.tagline}>Join Premium • AI Agent</Text>
+          <Text style={styles.tagline}>Wood inventory • Calm & premium</Text>
         </View>
 
         <View style={styles.form}>
           <View style={styles.formHighlight} />
           <Text style={styles.formTitle}>Gufungura konti</Text>
-          <Text style={styles.formSub}>Tangira na GANZA — autonomous, premium, intelligent</Text>
+          <Text style={styles.formSub}>Tangira na GANZA — wood stock management</Text>
 
           <PremiumInput value={displayName} onChangeText={setDisplayName} placeholder="Amazina yose" label={t('fullName')} icon="◈" />
           <PremiumInput value={email} onChangeText={setEmail} placeholder="email@ganza.rw" label={t('email')} icon="⬡" />

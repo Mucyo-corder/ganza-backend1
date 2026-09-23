@@ -20,12 +20,11 @@ import {
 export const BottomNavigation: React.FC = () => {
   const navItems = [
     { to: '/', label: 'HOME', icon: Home },
-    { to: '/kamera', label: 'KAMERA', icon: Camera, badge: 'LIVE' },
-    { to: '/imbaho', label: 'IMBAHO', icon: Package },
+    { to: '/kamera', label: 'FOTO', icon: Camera },
+    { to: '/imbaho', label: 'UBUBIKO', icon: Package },
     { to: '/kugurisha', label: 'GURISHA', icon: TrendingUp },
-    { to: '/kugura', label: 'GURA', icon: ShoppingCart },
-    { to: '/abakiriya', label: 'ABAKIRIYA', icon: Users },
-    { to: '/byinshi', label: 'BYINSHI', icon: Menu },
+    { to: '/raporo', label: 'RAPORO', icon: Menu },
+    { to: '/byinshi', label: 'IGENAM.', icon: Menu },
   ];
 
   return (
@@ -48,9 +47,6 @@ export const BottomNavigation: React.FC = () => {
           >
             <div className="relative">
               <Icon className="w-5 h-5 shrink-0" />
-              {item.badge && (
-                <span className="absolute -top-1 -right-2 w-2 h-2 bg-white rounded-full animate-ping" />
-              )}
             </div>
             <span className="text-[10px] font-semibold tracking-tighter mt-0.5 whitespace-nowrap">
               {item.label}

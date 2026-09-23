@@ -26,7 +26,8 @@ export interface InventoryItem {
   id: string;
   businessId: string;
   name: string;
-  category: string;
+  category: string; // woodType alias
+  woodType?: string;
   quantity: number;
   unit: string;
   unitPrice: number;
@@ -36,6 +37,27 @@ export interface InventoryItem {
   createdAt: number;
   updatedAt: number;
   isUserCorrected?: boolean;
+  // GANZA wood-stock extensions — honest measurement
+  dimensions?: {
+    length: number; // meters
+    width: number; // meters
+    thickness: number; // meters
+    displayStr: string;
+  };
+  volumeM3?: number; // total volume for this lot
+  areaM2?: number;
+  totalLengthM?: number;
+  priceBasis?: 'piece' | 'm' | 'm2' | 'm3';
+  pricePerUnit?: number;
+  measurementMethod?: 'reference_ruler' | 'reference_object' | 'ar_depth' | 'manual' | 'estimated';
+  confidence?: number;
+  source?: 'scan' | 'manual';
+  groups?: Array<{
+    woodType: string;
+    quantity: number;
+    dimensions: {length: number; width: number; thickness: number; displayStr: string};
+  }>;
+  syncStatus?: 'synced' | 'pending' | 'failed';
 }
 
 export interface SaleItem {

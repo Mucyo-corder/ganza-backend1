@@ -46,6 +46,7 @@ import { NotificationController, AuditController, TaxController } from '../contr
 import { TestingController } from '../controllers/testing.controller.ts';
 import { DeviceController } from '../controllers/device.controller.ts';
 import { AgentController } from '../controllers/agent.controller.ts';
+import { NLUController } from '../controllers/nlu.controller.ts';
 
 export const apiRouter = Router();
 
@@ -218,6 +219,19 @@ agentRouter.post('/tasks/:id/cancel', AgentController.cancelTask);
 agentRouter.get('/tasks/:id/evidence', AgentController.getEvidence);
 agentRouter.get('/tasks/:id/report', AgentController.getReport);
 apiRouter.use('/agent', agentRouter);
+
+// ==========================================
+// 17.5 GANZA NLU — KINYARWANDA-NATIVE LANGUAGE UNDERSTANDING
+// ==========================================
+const nluRouter = Router();
+nluRouter.use(authenticateToken);
+nluRouter.post('/understand', NLUController.understand);
+nluRouter.post('/voice', NLUController.voice);
+nluRouter.get('/vocabulary', NLUController.vocabulary);
+nluRouter.post('/vocabulary', NLUController.extendVocabulary);
+nluRouter.get('/intents', NLUController.intents);
+nluRouter.get('/health', NLUController.health);
+apiRouter.use('/nlu', nluRouter);
 
 // ==========================================
 // 18. DEVICE REGISTRY

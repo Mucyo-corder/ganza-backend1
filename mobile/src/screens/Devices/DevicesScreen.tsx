@@ -42,8 +42,8 @@ export default function DevicesScreen({navigation}: {navigation: {navigate: (s: 
               <LinearGradient colors={['rgba(56,189,248,0.10)', 'rgba(255,255,255,0.02)'] as unknown as string[]} style={StyleSheet.absoluteFill} />
               <View style={styles.deviceIconWrap}><Text style={styles.deviceIcon}>⬡</Text></View>
               <Text style={styles.deviceName}>Computer</Text>
-              <Text style={styles.deviceModel}>Windows • Synced</Text>
-              <View style={styles.deviceStatusRow}><View style={styles.dotGreen} /><Text style={styles.deviceStatusText}>Synced • 2s ago</Text></View>
+              <Text style={styles.deviceModel}>Windows • Byahujwe</Text>
+              <View style={styles.deviceStatusRow}><View style={styles.dotGreen} /><Text style={styles.deviceStatusText}>Byahujwe • 2s ago</Text></View>
               <View style={styles.signalRow}>
                 <View style={[styles.signalBar, {height: 10, backgroundColor: '#38BDF8'}]} />
                 <View style={[styles.signalBar, {height: 14, backgroundColor: '#38BDF8'}]} />

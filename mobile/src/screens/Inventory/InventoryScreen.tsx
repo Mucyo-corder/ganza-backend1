@@ -100,13 +100,16 @@ export default function InventoryScreen({navigation}: {navigation: {navigate: (s
         )}
         <View style={styles.itemInfo}>
           <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-          <Text style={styles.itemDetails}>{item.quantity} {item.unit} • {formatRWF(item.unitPrice)} /pc • {item.category || 'General'}</Text>
+          <Text style={styles.itemDetails}>{item.quantity} {item.unit} • {formatRWF(item.unitPrice)} /pc • {item.category || 'General'}{item.dimensions ? ` • ${item.dimensions.displayStr}` : ''}</Text>
+          {item.volumeM3 ? <Text style={styles.itemVolume}>{item.volumeM3.toFixed(3)} m³ • {(item as any).measurementMethod === 'estimated' ? 'Estimated' : 'Measured'}</Text> : null}
           <View style={styles.itemMetaRow}>
             <View style={[styles.qtyPill, isLow && styles.qtyPillLow]}>
               <View style={[styles.qtyDot, isLow && styles.qtyDotLow]} />
-              <Text style={[styles.qtyText, isLow && styles.qtyTextLow]}>{item.quantity} pcs</Text>
+              <Text style={[styles.qtyText, isLow && styles.qtyTextLow]}>{item.quantity} imbaho</Text>
             </View>
             {item.isUserCorrected && <StatusPill status="warning" label={t('userCorrected')} />}
+            {(item as any).syncStatus === 'pending' && <View style={styles.syncPill}><Text style={styles.syncPillText}>Bitegereje guhuza</Text></View>}
+            {(item as any).measurementMethod === 'estimated' && <View style={styles.estimatedPill}><Text style={styles.estimatedPillText}>Estimated</Text></View>}
           </View>
         </View>
         <View style={styles.itemRight}>
@@ -126,56 +129,8 @@ export default function InventoryScreen({navigation}: {navigation: {navigate: (s
 
   return (
     <AmbientBackground>
-      <GanzaHeader variant="compact" onNotificationPress={() => navigation.navigate('Notifications')} onProfilePress={() => navigation.navigate('Profile')} />
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>{t('inventory')}</Text>
-            <Text style={styles.subtitle}>Ububiko • {items.length} items • AI-monitored</Text>
-          </View>
-          <View style={styles.headerValueCard}>
-            <Text style={styles.headerValueLabel}>Agaciro kose</Text>
-            <Text style={styles.headerValue}>{formatRWF(totalValue)}</Text>
-          </View>
-        </View>
-
-        {/* Search — premium glass */}
-        <View style={styles.searchWrap}>
-          <Text style={styles.searchIcon}>◈</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Shakisha — izina, category..."
-            placeholderTextColor="#5E728C"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear}>
-              <Text style={styles.searchClearText}>×</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Filters */}
-        <View style={styles.filters}>
-          {(['all', 'low', 'recent'] as const).map(f => (
-            <TouchableOpacity key={f} style={[styles.filterChip, filter === f && styles.filterChipActive]} onPress={() => setFilter(f)} activeOpacity={0.85}>
-              <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
-                {f === 'all' ? 'Byose' : f === 'low' ? t('lowStock') : 'Vuba'}
-              </Text>
-              {filter === f && <View style={styles.filterDot} />}
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Automation insight */}
-        <View style={styles.insightBar}>
-          <View style={styles.insightDot} />
-          <Text style={styles.insightText}>GANZA AI irimo gukurikirana stock • Low-stock alerts active</Text>
-        </View>
-
+      <View style={{flex: 1}}>
+        {/* FlatList with header that scrolls — header NOT fixed */}
         {loading ? (
           <View style={styles.loadingWrap}>
             <View style={styles.loadingPulse} />
@@ -186,14 +141,60 @@ export default function InventoryScreen({navigation}: {navigation: {navigate: (s
             data={filteredItems}
             renderItem={renderItem}
             keyExtractor={item => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, {padding: SPACING.md, paddingTop: 2}]}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#60A5FA" />}
+            ListHeaderComponent={
+              <View>
+                {/* Header scrolls with list */}
+                <GanzaHeader variant="compact" onNotificationPress={() => navigation.navigate('Notifications')} onProfilePress={() => navigation.navigate('Profile')} />
+                <View style={styles.header}>
+                  <View>
+                    <Text style={styles.title}>{t('inventory')}</Text>
+                    <Text style={styles.subtitle}>Ububiko • ubwoko {items.length}</Text>
+                  </View>
+                  <View style={styles.headerValueCard}>
+                    <Text style={styles.headerValueLabel}>Agaciro kose</Text>
+                    <Text style={styles.headerValue}>{formatRWF(totalValue)}</Text>
+                  </View>
+                </View>
+
+                {/* Search */}
+                <View style={styles.searchWrap}>
+                  <Text style={styles.searchIcon}>◈</Text>
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Shakisha — izina, ubwoko..."
+                    placeholderTextColor="#5E728C"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoCapitalize="none"
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear}>
+                      <Text style={styles.searchClearText}>×</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Filters */}
+                <View style={styles.filters}>
+                  {(['all', 'low', 'recent'] as const).map(f => (
+                    <TouchableOpacity key={f} style={[styles.filterChip, filter === f && styles.filterChipActive]} onPress={() => setFilter(f)} activeOpacity={0.85}>
+                      <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
+                        {f === 'all' ? 'Byose' : f === 'low' ? t('lowStock') : 'Vuba'}
+                      </Text>
+                      {filter === f && <View style={styles.filterDot} />}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            }
             ListEmptyComponent={
               <GlassCard style={{marginTop: 16}} padding="lg">
                 <View style={styles.emptyWrap}>
                   <View style={styles.emptyIconBox}><Text style={styles.emptyIcon}>⬢</Text></View>
                   <Text style={styles.emptyTitle}>{t('noResult')}</Text>
-                  <Text style={styles.emptySub}>Nta bicuruzwa bihuye na filter. Ongera ugerageze cyangwa ushyiremo ibishya.</Text>
+                  <Text style={styles.emptySub}>Nta bicuruzwa bihuye na filter. Ongera ugerageze.</Text>
                 </View>
               </GlassCard>
             }
@@ -266,7 +267,8 @@ const styles = StyleSheet.create({
   itemInfo: {flex: 1},
   itemName: {fontSize: 14, color: '#F1F6FF', fontWeight: '700', letterSpacing: -0.1},
   itemDetails: {fontSize: 11, color: '#8FA2BB', marginTop: 2},
-  itemMetaRow: {flexDirection: 'row', alignItems: 'center', marginTop: 6},
+  itemVolume: {fontSize: 11, color: '#6B84A0', marginTop: 2, fontFamily: 'monospace'},
+  itemMetaRow: {flexDirection: 'row', alignItems: 'center', marginTop: 6, flexWrap: 'wrap'},
   qtyPill: {flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, backgroundColor: 'rgba(16,185,129,0.10)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.14)', marginRight: 6},
   qtyPillLow: {backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.18)'},
   qtyDot: {width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#10B981', marginRight: 5},
@@ -289,6 +291,10 @@ const styles = StyleSheet.create({
   emptyIcon: {fontSize: 20, color: '#6B84A0'},
   emptyTitle: {fontSize: 14, fontWeight: '700', color: '#EAF2FD', textAlign: 'center'},
   emptySub: {fontSize: 12, color: '#8FA2BB', textAlign: 'center', marginTop: 6, lineHeight: 16},
+  syncPill: {paddingHorizontal: 7, paddingVertical: 3, borderRadius: 20, backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.18)', marginLeft: 6},
+  syncPillText: {fontSize: 9, fontWeight: '700', color: '#FCD34D'},
+  estimatedPill: {paddingHorizontal: 7, paddingVertical: 3, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginLeft: 6},
+  estimatedPillText: {fontSize: 9, fontWeight: '600', color: '#8FA2BB'},
   fabWrap: {position: 'absolute', bottom: 16, left: 16, right: 16, flexDirection: 'row', alignItems: 'center'},
   scanFab: {width: 80, borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)'},
   scanFabIcon: {fontSize: 16, color: '#fff', fontWeight: '700'},

@@ -144,10 +144,10 @@ export class FirebaseService {
       }
       // fallback cache
       const cached = await StorageService.getCache().catch(() => null);
-      return cached?.inventory?.filter((i: InventoryItem) => i.businessId === businessId) || [];
+      return (cached as any)?.inventory?.filter((i: InventoryItem) => i.businessId === businessId) || [];
     } catch {
       const cached = await StorageService.getCache().catch(() => null);
-      return cached?.inventory?.filter((i: InventoryItem) => i.businessId === businessId) || [];
+      return (cached as any)?.inventory?.filter((i: InventoryItem) => i.businessId === businessId) || [];
     }
   }
 
@@ -177,7 +177,7 @@ export class FirebaseService {
       // offline fallback: queue & cache locally
       await StorageService.addToQueue({endpoint, method, data: item}).catch(() => {});
       const cache = (await StorageService.getCache().catch(() => null)) || {};
-      const inventory: InventoryItem[] = cache.inventory || [];
+      const inventory: InventoryItem[] = (cache as any).inventory || [];
       const idx = inventory.findIndex((x: InventoryItem) => x.id === item.id);
       if (idx >= 0) inventory[idx] = item;
       else inventory.push(item);
@@ -195,7 +195,7 @@ export class FirebaseService {
     } catch (e) {
       await StorageService.addToQueue({endpoint: `/api/inventory/${itemId}`, method: 'DELETE', data: {}}).catch(() => {});
       const cache = (await StorageService.getCache().catch(() => null)) || {};
-      const inventory: InventoryItem[] = cache.inventory || [];
+      const inventory: InventoryItem[] = (cache as any).inventory || [];
       await StorageService.setCache({
         ...cache,
         inventory: inventory.filter((x: InventoryItem) => x.id !== itemId),
@@ -218,10 +218,10 @@ export class FirebaseService {
         return [];
       }
       const cached = await StorageService.getCache().catch(() => null);
-      return cached?.sales?.filter((s: SaleItem) => s.businessId === businessId) || [];
+      return (cached as any)?.sales?.filter((s: SaleItem) => s.businessId === businessId) || [];
     } catch {
       const cached = await StorageService.getCache().catch(() => null);
-      return cached?.sales?.filter((s: SaleItem) => s.businessId === businessId) || [];
+      return (cached as any)?.sales?.filter((s: SaleItem) => s.businessId === businessId) || [];
     }
   }
 
@@ -236,7 +236,7 @@ export class FirebaseService {
     } catch (e) {
       await StorageService.addToQueue({endpoint: '/api/sales', method: 'POST', data: sale}).catch(() => {});
       const cache = (await StorageService.getCache().catch(() => null)) || {};
-      const sales: SaleItem[] = cache.sales || [];
+      const sales: SaleItem[] = (cache as any).sales || [];
       sales.push(sale);
       await StorageService.setCache({...cache, sales}).catch(() => {});
       return sale.id;
@@ -257,10 +257,10 @@ export class FirebaseService {
         return [];
       }
       const cached = await StorageService.getCache().catch(() => null);
-      return cached?.customers?.filter((c: Customer) => c.businessId === businessId) || [];
+      return (cached as any)?.customers?.filter((c: Customer) => c.businessId === businessId) || [];
     } catch {
       const cached = await StorageService.getCache().catch(() => null);
-      return cached?.customers?.filter((c: Customer) => c.businessId === businessId) || [];
+      return (cached as any)?.customers?.filter((c: Customer) => c.businessId === businessId) || [];
     }
   }
 
@@ -274,7 +274,7 @@ export class FirebaseService {
     } catch (e) {
       await StorageService.addToQueue({endpoint: '/api/customers', method: 'POST', data: customer}).catch(() => {});
       const cache = (await StorageService.getCache().catch(() => null)) || {};
-      const customers: Customer[] = cache.customers || [];
+      const customers: Customer[] = (cache as any).customers || [];
       customers.push(customer);
       await StorageService.setCache({...cache, customers}).catch(() => {});
       return customer.id;

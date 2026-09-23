@@ -188,7 +188,7 @@ export const SalesScreen: React.FC = () => {
                 </div>
                 <div className="text-xs text-[#75675C] dark:text-stone-400 flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-[#8A5A38] dark:text-[#E2B994]">
-                    {sale.items.map((i) => `${i.species} (${i.quantity} pcs)`).join(', ')}
+                    {sale.items.map((i) => `${i.species} (${i.quantity} imbaho)`).join(', ')}
                   </span>
                   <span>•</span>
                   <span>{sale.createdAt}</span>
@@ -284,7 +284,7 @@ export const SalesScreen: React.FC = () => {
             >
               {inventory.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.name} — Hasigaye {item.quantity} pcs ({item.sellingPrice.toLocaleString()} RWF/pc)
+                  {item.name} — Hasigaye {item.quantity} imbaho ({item.sellingPrice.toLocaleString()} RWF/pc)
                 </option>
               ))}
             </select>

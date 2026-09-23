@@ -35,16 +35,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenCapture, onOpenVoice }) 
 
   const navItems = [
     { to: '/', label: 'HOME', icon: Home },
-    { to: '/kamera', label: 'KAMERA', icon: Camera, badge: 'LIVE' },
-    { to: '/imbaho', label: 'IMBAHO MFITE', icon: Package },
-    { to: '/kugurisha', label: 'KUGURISHA', icon: TrendingUp },
-    { to: '/kugura', label: 'KUGURA', icon: ShoppingCart },
-    { to: '/abakiriya', label: 'ABAKIRIYA', icon: Users },
-    { to: '/byinshi', label: 'BYINSHI', icon: Menu },
+    { to: '/kamera', label: 'FATA IFOTO', icon: Camera },
+    { to: '/imbaho', label: 'UBUBIKO', icon: Package },
+    { to: '/kugurisha', label: 'UBUCURUZI', icon: TrendingUp },
+    { to: '/raporo', label: 'RAPORO', icon: Menu },
+    { to: '/byinshi', label: 'IGENAMITERERE', icon: Menu },
   ];
 
   return (
-    <aside className="hidden md:flex flex-col justify-between w-64 lg:w-72 h-screen sticky top-0 bg-black text-white border-r border-zinc-800 p-5 z-40 select-none">
+    <aside className="hidden md:flex flex-col justify-between w-64 lg:w-72 min-h-screen bg-black text-white border-r border-zinc-800 p-5 z-40 select-none">
       {/* Brand Header */}
       <div className="space-y-6">
         <div className="px-2 pt-2">
@@ -87,11 +86,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenCapture, onOpenVoice }) 
                   <Icon className="w-5 h-5 shrink-0" />
                   <span>{item.label}</span>
                 </div>
-                {item.badge && (
-                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-white text-black">
-                    {item.badge}
-                  </span>
-                )}
               </NavLink>
             );
           })}
