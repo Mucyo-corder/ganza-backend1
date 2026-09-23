@@ -36,8 +36,34 @@ jobs:
         uses: android-actions/setup-android@v4.0.4
 
       - name: Install required Android packages
+        shell: bash
         run: |
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" "cmake;3.22.1" "ndk;27.1.12297006"
+          set -e
+          SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          NDK_VERSION="27.1.12297006"
+          NDK_DIR="$SDK_ROOT/ndk/$NDK_VERSION"
+
+          yes | sdkmanager --sdk_root="$SDK_ROOT"             "platforms;android-36"             "build-tools;36.0.0"             "cmake;3.22.1"
+
+          for attempt in 1 2 3 4; do
+            echo "Installing NDK $NDK_VERSION (attempt $attempt/4)..."
+            rm -rf "$NDK_DIR" "$SDK_ROOT/.temp"
+
+            if yes | sdkmanager --sdk_root="$SDK_ROOT" "ndk;$NDK_VERSION"; then
+              if [ -f "$NDK_DIR/source.properties" ]; then
+                echo "NDK $NDK_VERSION installed successfully."
+                break
+              fi
+            fi
+
+            if [ "$attempt" -eq 4 ]; then
+              echo "NDK installation failed after 4 attempts."
+              exit 1
+            fi
+
+            echo "NDK installation failed. Retrying in 10 seconds..."
+            sleep 10
+          done
 
       - name: Install dependencies
         working-directory: mobile
