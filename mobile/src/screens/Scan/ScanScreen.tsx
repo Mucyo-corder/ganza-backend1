@@ -1,3 +1,4 @@
+import {usePhotoOutput} from 'react-native-vision-camera';
 import React, {useState, useRef, useCallback, useEffect} from 'react';
 import {
   View,
@@ -33,7 +34,6 @@ import {checkPhotoQuality} from '../../utils/photoQuality';
 export default function ScanScreen({navigation}: {navigation: {navigate: (s: string, p?: unknown) => void}}) {
   const {user} = useAuth();
   const {t} = useLocalization();
-  const cameraRef = useRef<any>(null);
   const {hasPermission, requestPermission} = useCameraPermission();
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -46,11 +46,12 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
   const [cameraMounted, setCameraMounted] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const device = useCameraDevice(cameraType);
+  const photoOutput = usePhotoOutput();
 
-  const setCameraRef = useCallback((ref: any) => {
-    cameraRef.current = ref;
-    cameraService.setCameraRef(ref);
-  }, []);
+  useEffect(() => {
+    cameraService.setPhotoOutput(photoOutput);
+    return () => cameraService.setPhotoOutput(null);
+  }, [photoOutput]);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -72,10 +73,10 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
   };
 
   const capturePhoto = useCallback(async () => {
-    const cameraIsReady = Boolean(hasCameraPermission) && Boolean(device) && cameraMounted && cameraReady && !isCapturing;
+    const cameraIsReady = Boolean(hasCameraPermission) && Boolean(device) && Boolean(photoOutput) && !isCapturing;
     if (loading || isCapturing || !cameraIsReady) {
       if (!cameraIsReady) {
-        Alert.alert('Camera ntitegura', 'Tegereza camera yitegure mbere yo gufata ifoto.');
+        Alert.alert('Camera ntiraboneka', 'Emeza ko permission yatanzwe kandi camera iri kuri screen.');
       }
       return;
     }
@@ -84,8 +85,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
     setQualityWarning(null);
     try {
       let uri: string | null = null;
-      if (device && cameraRef.current) {
-        cameraService.setCameraRef(cameraRef.current);
+      if (device && photoOutput) {
         console.log('PHOTO_CAPTURE_STARTED');
         const image = await cameraService.captureImage({flashMode, quality: 'high'});
         console.log('PHOTO_CAPTURE_SUCCESS', image?.uri);
@@ -123,7 +123,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
       setLoading(false);
       setIsCapturing(false);
     }
-  }, [device, flashMode, loading, navigation, t, hasCameraPermission, cameraMounted, cameraReady, isCapturing]);
+  }, [device, photoOutput, flashMode, loading, navigation, t, hasCameraPermission, cameraMounted, cameraReady, isCapturing]);
 
   const handleWebFile = async (e: unknown) => {
     const input = e as {target: {files: FileList | null}};
@@ -245,9 +245,9 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
         <View style={styles.cameraWrap}>
           {device ? (
             <Camera
-              ref={setCameraRef}
               style={StyleSheet.absoluteFill}
               device={device}
+              outputs={[photoOutput]}
               isActive={hasCameraPermission === true && !capturedImage}
               onError={(error) => {
                 console.warn('VISION_CAMERA_ERROR', error);
@@ -308,7 +308,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
           <TouchableOpacity
             style={styles.captureButton}
             onPress={capturePhoto}
-            disabled={loading || isCapturing || !cameraReady || !cameraMounted || !device || hasCameraPermission !== true}
+            disabled={loading || isCapturing || !device || hasCameraPermission !== true}
             activeOpacity={0.88}
           >
             <View style={styles.captureOuter}>
@@ -321,7 +321,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
                 <View style={styles.captureInner} />
               </LinearGradient>
             </View>
-            <Text style={styles.captureLabel}>{cameraReady ? 'Fata ifoto' : 'Tegereza kamera'}</Text>
+            <Text style={styles.captureLabel}>Fata ifoto</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.controlButton} onPress={() => setCameraType(cameraType === 'back' ? 'front' : 'back')} activeOpacity={0.8}>

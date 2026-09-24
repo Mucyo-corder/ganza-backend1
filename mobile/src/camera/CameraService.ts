@@ -29,7 +29,6 @@ export interface CapturedImage {
  */
 export class CameraService {
   private static instance: CameraService;
-  private cameraRef: {takePhoto?: (options?: Record<string, unknown>) => Promise<{path?: string; width?: number; height?: number}>; controller?: unknown} | null = null;
   private photoOutput: CameraPhotoOutput | null = null;
 
   static getInstance(): CameraService {
@@ -39,13 +38,10 @@ export class CameraService {
     return CameraService.instance;
   }
 
-  setCameraRef(ref: {takePhoto?: (options?: Record<string, unknown>) => Promise<{path?: string; width?: number; height?: number}>; controller?: unknown} | null): void {
-    this.cameraRef = ref;
-  }
-
   setPhotoOutput(output: CameraPhotoOutput | null): void {
     this.photoOutput = output;
   }
+
 
   async requestCameraPermission(): Promise<boolean> {
     if (Platform.OS === 'web') return true;
@@ -67,40 +63,45 @@ export class CameraService {
   * react-native-camera takePictureAsync API.
    */
   async captureImage(config?: Partial<CameraConfig>): Promise<CapturedImage | null> {
-    if (!this.cameraRef || typeof this.cameraRef.takePhoto !== 'function') {
-      throw new Error('Camera ntitegura. Tegereza camera yitegure mbere yo gufata ifoto.');
+    if (!this.photoOutput) {
+      throw new Error('Camera ntiraboneka. Tegereza camera yitegure mbere yo gufata ifoto.');
     }
+
     try {
-      const captureResult = await this.cameraRef.takePhoto({
-        flash: config?.flashMode === 'on' ? 'on' : config?.flashMode === 'auto' ? 'auto' : 'off',
-        qualityPrioritization: config?.quality === 'low' ? 'speed' : config?.quality === 'max' ? 'quality' : 'balanced',
-      });
-      if (!captureResult?.path) {
-        throw new Error('Camera ntabwo yagaruye ifoto yemewe. Reba niba kamera ikora neza.');
+      const photoFile = await this.photoOutput.capturePhotoToFile(
+        {
+          flashMode:
+            config?.flashMode === 'on'
+              ? 'on'
+              : config?.flashMode === 'auto'
+                ? 'auto'
+                : 'off',
+        },
+        {},
+      );
+
+      if (!photoFile?.filePath) {
+        throw new Error('Ifoto ntiyabitswe neza. Ongera ugerageze.');
       }
 
-      const uri = captureResult.path.startsWith('file://') ? captureResult.path : `file://${captureResult.path}`;
-      const probe = await fetch(uri).then(res => res.ok).catch(() => false);
-      if (!probe) {
-        throw new Error('Ifoto yafatiwe ariko ntibashoboye kuyibona. Ongera ufate ifoto.');
-      }
+      const uri = photoFile.filePath.startsWith('file://')
+        ? photoFile.filePath
+        : `file://${photoFile.filePath}`;
 
       return {
         uri,
-        width: captureResult.width || 1920,
-        height: captureResult.height || 1080,
+        width: 0,
+        height: 0,
         fileSize: 0,
         mime: 'image/jpeg',
       };
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Camera capture failed.';
-      throw new Error(msg);
+      console.warn('CAMERA_CAPTURE_ERROR', error);
+      throw error instanceof Error
+        ? error
+        : new Error('Ifoto ntiyafashwe neza. Ongera ugerageze.');
     }
   }
-
-  /**
-   * Pick from library as fallback (real image, not mock)
-   */
   async pickFromLibrary(): Promise<CapturedImage | null> {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
