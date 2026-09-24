@@ -107,13 +107,18 @@ export class CameraService {
     }
     try {
       const camera = this.cameraRef as {
-        takePhoto?: (opts?: unknown) => Promise<{path: string; width?: number; height?: number}>;
+        takePhoto?: (opts?: unknown) => Promise<{path?: string; uri?: string; width?: number; height?: number}>;
         takePictureAsync?: (opts?: unknown) => Promise<{uri: string; width?: number; height?: number}>;
       };
       let data: {uri: string; width?: number; height?: number} | null = null;
       if (camera.takePhoto) {
-        const res = await camera.takePhoto({flash: config?.flashMode || 'off', qualityPrioritization: 'balanced'});
-        data = {uri: `file://${res.path}`, width: res.width, height: res.height};
+        const res = await camera.takePhoto({
+          flash: config?.flashMode || 'off',
+          qualityPrioritization: 'balanced',
+        });
+        const uri = res.path ? `file://${res.path}` : res.uri;
+        if (!uri) throw new Error('Ifoto yagaragaye ariko ntizagaragaye neza');
+        data = {uri, width: res.width, height: res.height};
       } else if (camera.takePictureAsync) {
         const res = await camera.takePictureAsync({
           quality: config?.quality === 'max' ? 1 : config?.quality === 'high' ? 0.85 : 0.6,

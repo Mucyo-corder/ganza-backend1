@@ -58,13 +58,6 @@ export const GanzaHeader: React.FC<Props> = ({
 
         <View style={styles.wordmark}>
           <Text style={[styles.ganza, isCompact && styles.ganzaCompact]}>GANZA</Text>
-          <Text style={styles.tagline}>Manage your wood stock easily.</Text>
-          {showStatus && (
-            <View style={styles.statusRow}>
-              <View style={styles.statusDot} />
-              <Text style={styles.statusText}>Wood inventory • Calm & precise</Text>
-            </View>
-          )}
         </View>
 
         <View style={styles.actions}>

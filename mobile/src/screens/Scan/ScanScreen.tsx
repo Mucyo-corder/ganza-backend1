@@ -11,6 +11,10 @@ import {
   Linking,
   ScrollView,
 } from 'react-native';
+import {
+  Camera,
+  useCameraDevice,
+} from 'react-native-vision-camera';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../../hooks/useAuth';
 import {useLocalization} from '../../localization/LocalizationContext';
@@ -25,16 +29,10 @@ import {BoardDetectionResult} from '../../types';
 import {compressImageUri} from '../../utils/formatters';
 import {checkPhotoQuality} from '../../utils/photoQuality';
 
-let VisionCamera: unknown = null;
-try {
-  const cam = require('react-native-vision-camera');
-  VisionCamera = cam.Camera;
-} catch {}
-
 export default function ScanScreen({navigation}: {navigation: {navigate: (s: string, p?: unknown) => void}}) {
   const {user} = useAuth();
   const {t} = useLocalization();
-  const cameraRef = useRef<unknown>(null);
+  const cameraRef = useRef<any>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [detectionResult, setDetectionResult] = useState<BoardDetectionResult | null>(null);
@@ -42,10 +40,9 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
   const [qualityWarning, setQualityWarning] = useState<string | null>(null);
   const [flashMode, setFlashMode] = useState<'on' | 'off'>('off');
   const [cameraType, setCameraType] = useState<'back' | 'front'>('back');
-  const [visionzihari, setVisionzihari] = useState(false);
+  const device = useCameraDevice(cameraType);
 
   useEffect(() => {
-    setVisionzihari(!!VisionCamera);
     if (Platform.OS === 'web') {
       setHasCameraPermission(true);
       return;
@@ -71,7 +68,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
     setQualityWarning(null);
     try {
       let uri: string | null = null;
-      if (VisionCamera && cameraRef.current) {
+      if (device && cameraRef.current) {
         cameraService.setCameraRef(cameraRef.current);
         const image = await cameraService.captureImage({flashMode, quality: 'high'});
         if (!image) throw new Error(t('backendError'));
@@ -85,16 +82,19 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
         uri = await compressImageUri(picked.uri, 1280, 0.8);
       }
       setCapturedImage(uri);
-      // Honest quality check before analysis
-      const q = checkPhotoQuality({requireReference: true});
-      if (!q.ok) {
-        setQualityWarning(q.message);
-        Alert.alert('Fata indi foto isobanutse.', q.recommendation || 'Ifoto ntisobanutse — ongera ufate hafi, mu rumuri.');
-        setLoading(false);
+
+      const quality = checkPhotoQuality({requireReference: true});
+      if (!quality.ok) {
+        setQualityWarning(quality.message);
+        Alert.alert('Ifoto ntisobanutse neza.', quality.recommendation || 'Ongera ufate ifoto.');
+        const empty: BoardDetectionResult = {count: 0, confidence: 0, boards: [], timestamp: Date.now()};
+        setDetectionResult(empty);
+        navigation.navigate('ScanResult', {result: empty, imageUri: uri, qualityWarning: quality.message});
         return;
       }
-      if (q.needsReference) {
-        setQualityWarning('Ibipimo byagereranijwe — nta rurerure rugaragaye.');
+
+      if (quality.needsReference) {
+        setQualityWarning('Ibipimo ni ibyagereranyijwe — nta rurerure rugaragaye.');
       }
       await runDetection(uri);
     } catch (error) {
@@ -103,7 +103,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
     } finally {
       setLoading(false);
     }
-  }, [flashMode, loading, t]);
+  }, [device, flashMode, loading, navigation, t]);
 
   const handleWebFile = async (e: unknown) => {
     const input = e as {target: {files: FileList | null}};
@@ -129,10 +129,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
         const empty: BoardDetectionResult = {count: 0, confidence: 0, boards: [], timestamp: Date.now()};
         setDetectionResult(empty);
         setLoading(false);
-        Alert.alert('Nta mashini ibara imbaho ihujwe', 'Shyiramo umubare w\'imbaho wiboneye, hanyuma ukomeze.', [
-          {text: t('cancel'), style: 'cancel'},
-          {text: t('confirm'), onPress: () => navigateToResult(empty, imageUri)},
-        ]);
+        navigation.navigate('ScanResult', {result: empty, imageUri, qualityWarning: 'Nta model ya vision ihari. Shyiramo umubare w\'imbaho wiboneye.'});
         return;
       }
       const result = await woodDetectionService.detectBoards(imageUri);
@@ -140,13 +137,24 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
       const compressed = await compressImageUri(imageUri, 1024, 0.75);
       await firebaseService.uploadImage(compressed, `scans/${user?.uid || 'anon'}/${Date.now()}.jpg`).catch(() => {});
       await firebaseService.uploadCameraResult({userId: user?.uid, businessId: user?.businessId, result, imageUri, timestamp: Date.now()}).catch(() => {});
-      if (result.count === 0) Alert.alert(t('error'), t('noBoardsDetected'));
-      else if (result.confidence < 0.5) Alert.alert('Birasaba kugenzura', 'Ntituzi neza — reba umubare mbere yo kubika.');
+
+      if (result.count === 0) {
+        setQualityWarning('Nta mbaho zagaragaye neza. Reba ifoto cyangwa ongeraho umubare.');
+        navigation.navigate('ScanResult', {result, imageUri, qualityWarning: 'Nta mbaho zagaragaye neza.'});
+        return;
+      }
+
+      if (result.confidence < 0.5) {
+        setQualityWarning('Icyizere kiri hasi — reba ibipimo mbere yo kubika.');
+      }
+
+      navigation.navigate('ScanResult', {result, imageUri, qualityWarning: qualityWarning || null});
     } catch (error) {
       const msg = error instanceof Error ? error.message : t('noBoardsDetected');
       Alert.alert(t('error'), msg);
       const empty: BoardDetectionResult = {count: 0, confidence: 0, boards: [], timestamp: Date.now()};
       setDetectionResult(empty);
+      navigation.navigate('ScanResult', {result: empty, imageUri, qualityWarning: msg});
     } finally {
       setLoading(false);
     }
@@ -217,9 +225,13 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
         {/* Header scrolls? In this screen header is above camera, camera takes rest — header itself is NOT fixed inside cameraWrap */}
         <GanzaHeader variant="compact" />
         <View style={styles.cameraWrap}>
-          {visionzihari && VisionCamera ? (
-            // @ts-ignore
-            <VisionCamera ref={cameraRef as never} style={StyleSheet.absoluteFill} device={cameraType} isActive={hasCameraPermission === true && !capturedImage} photo enableZoomGesture />
+          {device ? (
+            <Camera
+              ref={cameraRef}
+              style={StyleSheet.absoluteFill}
+              device={device}
+              isActive={hasCameraPermission === true && !capturedImage}
+            />
           ) : (
             <View style={[StyleSheet.absoluteFill, styles.fallbackCameraBg]}>
               <View style={styles.fallbackIconBox}><Text style={styles.fallbackIcon}>⬢</Text></View>
