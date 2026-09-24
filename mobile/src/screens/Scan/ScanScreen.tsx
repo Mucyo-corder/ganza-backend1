@@ -13,10 +13,8 @@ import {
 } from 'react-native';
 import {
   Camera,
-  CameraRef,
   useCameraPermission,
   useCameraDevice,
-  usePhotoOutput,
 } from 'react-native-vision-camera';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../../hooks/useAuth';
@@ -35,8 +33,7 @@ import {checkPhotoQuality} from '../../utils/photoQuality';
 export default function ScanScreen({navigation}: {navigation: {navigate: (s: string, p?: unknown) => void}}) {
   const {user} = useAuth();
   const {t} = useLocalization();
-  const cameraRef = useRef<CameraRef>(null);
-  const photoOutput = usePhotoOutput({quality: 0.9, qualityPrioritization: 'quality'});
+  const cameraRef = useRef<any>(null);
   const {hasPermission, requestPermission} = useCameraPermission();
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -47,7 +44,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
   const [cameraType, setCameraType] = useState<'back' | 'front'>('back');
   const device = useCameraDevice(cameraType);
 
-  const setCameraRef = useCallback((ref: CameraRef | null) => {
+  const setCameraRef = useCallback((ref: any) => {
     cameraRef.current = ref;
     cameraService.setCameraRef(ref);
   }, []);
@@ -59,10 +56,6 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
     }
     requestPermissions();
   }, [hasPermission]);
-
-  useEffect(() => {
-    cameraService.setPhotoOutput(photoOutput);
-  }, [photoOutput]);
 
   const requestPermissions = async () => {
     const ok = hasPermission || await requestPermission();
@@ -151,14 +144,11 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
       await firebaseService.uploadImage(compressed, `scans/${user?.uid || 'anon'}/${Date.now()}.jpg`).catch(() => {});
       await firebaseService.uploadCameraResult({userId: user?.uid, businessId: user?.businessId, result, imageUri, timestamp: Date.now()}).catch(() => {});
 
-      if (result.count === 0) {
-        setQualityWarning('Nta mbaho zagaragaye neza. Reba ifoto cyangwa ongeraho umubare.');
-        navigation.navigate('ScanResult', {result, imageUri, qualityWarning: 'Nta mbaho zagaragaye neza.'});
+      if (result.analysisStatus === 'rejected' || result.objectType === 'unsupported_object' || result.count === 0 || result.confidence < 0.5) {
+        const warning = result.rejectionReason || 'GANZA ntiyizeye ko iyi foto ari urubaho. Fata ifoto igaragaza urubaho neza.';
+        setQualityWarning(warning);
+        navigation.navigate('ScanResult', {result, imageUri, qualityWarning: warning});
         return;
-      }
-
-      if (result.confidence < 0.5) {
-        setQualityWarning('Icyizere kiri hasi — reba ibipimo mbere yo kubika.');
       }
 
       navigation.navigate('ScanResult', {result, imageUri, qualityWarning: qualityWarning || null});
@@ -243,7 +233,6 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
               ref={setCameraRef}
               style={StyleSheet.absoluteFill}
               device={device}
-              outputs={[photoOutput]}
               isActive={hasCameraPermission === true && !capturedImage}
             />
           ) : (

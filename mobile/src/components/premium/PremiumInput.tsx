@@ -76,11 +76,11 @@ const styles = StyleSheet.create({
   },
   inputWrapFocused: {
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderColor: 'rgba(96,165,250,0.45)',
-    shadowColor: '#3B82F6',
+    borderColor: 'rgba(255,255,255,0.26)',
+    shadowColor: '#000000',
     shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
+    shadowOpacity: 0.10,
+    shadowRadius: 10,
   },
   inputWrapError: {
     borderColor: 'rgba(239,68,68,0.45)',
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: 'rgba(96,165,250,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.30)',
   },
   error: {
     fontSize: 11,

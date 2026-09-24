@@ -11,11 +11,31 @@ export interface DetectedBoard {
   boundingBox: BoundingBox;
 }
 
+export type SupportedWoodType =
+  | 'timber_board'
+  | 'plank'
+  | 'wood_beam'
+  | 'wood_post'
+  | 'wood_panel'
+  | 'other_supported_wood_material'
+  | 'unsupported_object';
+
 export interface BoardDetectionResult {
   count: number;
   confidence: number;
   boards: DetectedBoard[];
   timestamp: number;
+  objectType?: SupportedWoodType;
+  analysisStatus?: 'valid' | 'needs_review' | 'rejected';
+  rejectionReason?: string;
+  measurementConfidence?: number;
+  estimatedDimensions?: {
+    lengthM?: number;
+    widthM?: number;
+    thicknessM?: number;
+    display?: string;
+  } | null;
+  woodType?: string;
 }
 
 export interface WoodDetectionService {

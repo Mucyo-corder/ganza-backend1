@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   primaryWrap: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.18)',
     ...SHADOWS.glowSoft,
   },
   primarySurface: {
@@ -128,10 +128,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: COLORS.textPrimary,
+    backgroundColor: '#FFFFFF',
   },
   secondary: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
   },
@@ -163,13 +163,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    color: '#111827',
+    color: '#111111',
     textAlign: 'center',
   },
   textSecondary: {
-    color: '#F5F7FA',
+    color: '#F5F5F5',
   },
   textGhost: {
-    color: '#F5F7FA',
+    color: '#F5F5F5',
   },
 });

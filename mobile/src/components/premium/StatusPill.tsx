@@ -8,11 +8,11 @@ export const StatusPill: React.FC<{
   dot?: boolean;
 }> = ({status, label, dot = true}) => {
   const cfg = {
-    active: {bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.22)', dot: '#10B981', text: '#6EE7B7'},
-    idle: {bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.10)', dot: '#8FA2BB', text: '#CBD8E6'},
-    busy: {bg: 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.22)', dot: '#3B82F6', text: '#93C5FD'},
+    active: {bg: 'rgba(255,255,255,0.08)', border: 'rgba(255,255,255,0.14)', dot: '#D4D4D4', text: '#F5F5F5'},
+    idle: {bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.10)', dot: '#A3A3A3', text: '#D4D4D4'},
+    busy: {bg: 'rgba(255,255,255,0.08)', border: 'rgba(255,255,255,0.12)', dot: '#F5F5F5', text: '#F5F5F5'},
     offline: {bg: 'rgba(239,68,68,0.10)', border: 'rgba(239,68,68,0.18)', dot: '#6B7280', text: '#9CA3AF'},
-    success: {bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.22)', dot: '#10B981', text: '#6EE7B7'},
+    success: {bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.22)', dot: '#22C55E', text: '#86EFAC'},
     warning: {bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.22)', dot: '#F59E0B', text: '#FCD34D'},
     error: {bg: 'rgba(239,68,68,0.10)', border: 'rgba(239,68,68,0.18)', dot: '#EF4444', text: '#FCA5A5'},
   }[status];

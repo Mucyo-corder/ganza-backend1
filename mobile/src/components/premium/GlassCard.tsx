@@ -102,9 +102,9 @@ const stylesByVariant: Record<string, ViewStyle> = {
     borderColor: 'rgba(255,255,255,0.07)',
   },
   accent: {
-    backgroundColor: 'rgba(59,130,246,0.09)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(96,165,250,0.22)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
 };
 
@@ -158,8 +158,8 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   iconCircleAccent: {
-    backgroundColor: 'rgba(59,130,246,0.18)',
-    borderColor: 'rgba(96,165,250,0.28)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   iconText: {
     fontSize: 16,
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     color: '#EAF2FD',
   },
   titleAccent: {
-    color: '#BFDBFE',
+    color: '#F5F5F5',
   },
   subtitle: {
     fontSize: 11,

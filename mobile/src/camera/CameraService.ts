@@ -29,7 +29,7 @@ export interface CapturedImage {
  */
 export class CameraService {
   private static instance: CameraService;
-  private cameraRef: {controller?: unknown} | null = null;
+  private cameraRef: {takePhoto?: (options?: Record<string, unknown>) => Promise<{path?: string; width?: number; height?: number}>; controller?: unknown} | null = null;
   private photoOutput: CameraPhotoOutput | null = null;
 
   static getInstance(): CameraService {
@@ -39,7 +39,7 @@ export class CameraService {
     return CameraService.instance;
   }
 
-  setCameraRef(ref: {controller?: unknown} | null): void {
+  setCameraRef(ref: {takePhoto?: (options?: Record<string, unknown>) => Promise<{path?: string; width?: number; height?: number}>; controller?: unknown} | null): void {
     this.cameraRef = ref;
   }
 
@@ -67,25 +67,22 @@ export class CameraService {
   * react-native-camera takePictureAsync API.
    */
   async captureImage(config?: Partial<CameraConfig>): Promise<CapturedImage | null> {
-    if (!this.cameraRef || !this.photoOutput) {
+    if (!this.cameraRef || typeof this.cameraRef.takePhoto !== 'function') {
       throw new Error('Camera is not ready. Wait for the camera preview before taking a photo.');
     }
     try {
-      const captureResult = await this.photoOutput.capturePhotoToFile({
-        flashMode: config?.flashMode === 'on' || config?.flashMode === 'auto' ? config.flashMode : 'off',
-      }, {});
-      const uri = captureResult.filePath.startsWith('file://') ? captureResult.filePath : `file://${captureResult.filePath}`;
-
-      const data = {
-        uri,
-        width: 0,
-        height: 0,
-      };
-
+      const captureResult = await this.cameraRef.takePhoto({
+        flash: config?.flashMode === 'on' ? 'on' : config?.flashMode === 'auto' ? 'auto' : 'off',
+        qualityPrioritization: config?.quality === 'low' ? 'speed' : config?.quality === 'max' ? 'quality' : 'balanced',
+      });
+      if (!captureResult?.path) {
+        throw new Error('Camera did not return an image path.');
+      }
+      const uri = captureResult.path.startsWith('file://') ? captureResult.path : `file://${captureResult.path}`;
       return {
-        uri: data.uri,
-        width: data.width || 1920,
-        height: data.height || 1080,
+        uri,
+        width: captureResult.width || 1920,
+        height: captureResult.height || 1080,
         fileSize: 0,
         mime: 'image/jpeg',
       };

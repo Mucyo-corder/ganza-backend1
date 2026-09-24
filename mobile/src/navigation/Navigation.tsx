@@ -3,6 +3,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {View, Text, StyleSheet, Platform, Image} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useAuth} from '../hooks/useAuth';
 import {useLocalization} from '../localization/LocalizationContext';
 import {COLORS} from '../constants/theme';
@@ -32,11 +33,12 @@ const GANZA_ICON = (() => {
 })();
 
 function TabIcon({icon, label, focused, isScan}: {icon: string; label: string; focused: boolean; isScan?: boolean}) {
+  const color = focused ? '#FFFFFF' : '#A1A1A1';
   if (isScan) {
     return (
       <View style={styles.scanWrap}>
         <View style={[styles.scanTab, focused && styles.scanTabActive]}>
-          <Text style={styles.scanIcon}>{icon}</Text>
+          <Icon name={icon} size={26} color={focused ? '#111111' : '#1F1F1F'} />
         </View>
         <Text style={[styles.scanLabel, focused && styles.scanLabelActive]}>{label}</Text>
       </View>
@@ -45,7 +47,7 @@ function TabIcon({icon, label, focused, isScan}: {icon: string; label: string; f
   return (
     <View style={styles.tabItem}>
       <View style={[styles.tabIconWrap, focused && styles.tabIconWrapActive]}>
-        <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>{icon}</Text>
+        <Icon name={icon} size={20} color={color} />
       </View>
       <Text style={[styles.tabLabel, focused && styles.tabLabelActive]} numberOfLines={1}>
         {label}
@@ -104,8 +106,8 @@ function HomeTabs() {
       screenOptions={({route}) => ({
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarActiveTintColor: '#F5F7FA',
-        tabBarInactiveTintColor: '#8A98A8',
+        tabBarActiveTintColor: '#FFFFFF',
+        tabBarInactiveTintColor: '#A1A1A1',
         tabBarStyle: styles.tabBar,
         tabBarBackground: () => (
           <View style={StyleSheet.absoluteFill}>
@@ -115,22 +117,20 @@ function HomeTabs() {
         ),
         tabBarIcon: ({focused}) => {
           const name = route.name;
-          if (name === 'Home') return <TabIcon icon="◈" label={t('home')} focused={focused} />;
-          if (name === 'Scan') return <TabIcon icon="⬢" label={t('scan')} focused={focused} isScan />;
-          if (name === 'Inventory') return <TabIcon icon="⬡" label={t('inventory')} focused={focused} />;
-          if (name === 'Sales') return <TabIcon icon="◆" label={t('sales')} focused={focused} />;
-          if (name === 'Reports') return <TabIcon icon="▭" label={t('reports')} focused={focused} />;
-          if (name === 'Settings') return <TabIcon icon="⚙︎" label={t('settings')} focused={focused} />;
-          return <TabIcon icon="•" label={name} focused={focused} />;
+          if (name === 'FOTORA') return <TabIcon icon="camera" label="FOTORA" focused={focused} isScan />;
+          if (name === 'UBUBIKO') return <TabIcon icon="package-variant-closed" label="UBUBIKO" focused={focused} />;
+          if (name === 'UBUCURUZI') return <TabIcon icon="cash" label="UBUCURUZI" focused={focused} />;
+          if (name === 'RAPORO') return <TabIcon icon="chart-box-outline" label="RAPORO" focused={focused} />;
+          if (name === 'SETTING') return <TabIcon icon="cog" label="SETTING" focused={focused} />;
+          return <TabIcon icon="camera" label={name} focused={focused} />;
         },
       })}
     >
-      <Tab.Screen name="Home" component={DashboardScreen} />
-      <Tab.Screen name="Inventory" component={InventoryScreen} />
-      <Tab.Screen name="Scan" component={ScanScreen} options={{tabBarLabel: 'Scan'}} />
-      <Tab.Screen name="Sales" component={SalesScreen} />
-      <Tab.Screen name="Reports" component={ReportsScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen name="FOTORA" component={ScanScreen} options={{tabBarLabel: 'FOTORA'}} />
+      <Tab.Screen name="UBUBIKO" component={InventoryScreen} options={{tabBarLabel: 'UBUBIKO'}} />
+      <Tab.Screen name="UBUCURUZI" component={SalesScreen} options={{tabBarLabel: 'UBUCURUZI'}} />
+      <Tab.Screen name="RAPORO" component={ReportsScreen} options={{tabBarLabel: 'RAPORO'}} />
+      <Tab.Screen name="SETTING" component={SettingsScreen} options={{tabBarLabel: 'SETTING'}} />
     </Tab.Navigator>
   );
 }
@@ -200,22 +200,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: 'rgba(176,208,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   tabItem: {alignItems: 'center', justifyContent: 'center', minWidth: 56, paddingTop: 4},
   tabIconWrap: {width: 36, height: 28, borderRadius: 12, justifyContent: 'center', alignItems: 'center', overflow: 'hidden'},
   tabIconWrapActive: {backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)'},
-  tabIcon: {fontSize: 16, color: '#8A98A8', opacity: 0.85},
-  tabIconActive: {color: '#F5F7FA', opacity: 1},
-  tabLabel: {fontSize: 9, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: '#8A98A8', marginTop: 3},
-  tabLabelActive: {color: '#F5F7FA'},
-  activeDot: {width: 4, height: 4, borderRadius: 2, backgroundColor: '#F5F7FA', marginTop: 3},
+  tabIcon: {fontSize: 16, color: '#A1A1A1', opacity: 0.85},
+  tabIconActive: {color: '#FFFFFF', opacity: 1},
+  tabLabel: {fontSize: 9, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: '#8B8B8B', marginTop: 3},
+  tabLabelActive: {color: '#FFFFFF'},
+  activeDot: {width: 4, height: 4, borderRadius: 2, backgroundColor: '#FFFFFF', marginTop: 3},
   scanWrap: {alignItems: 'center', justifyContent: 'center', top: -6},
-  scanTab: {width: 56, height: 56, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#FFFFFF', shadowColor: '#000000', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.20, shadowRadius: 12, elevation: 8, overflow: 'hidden'},
-  scanTabActive: {shadowOpacity: 0.45, shadowRadius: 20},
-  scanIcon: {fontSize: 20, color: '#111827', fontWeight: '700'},
-  scanLabel: {fontSize: 9, fontWeight: '800', color: '#8A98A8', marginTop: 4, letterSpacing: 0.6, textTransform: 'uppercase'},
-  scanLabelActive: {color: '#F5F7FA'},
+  scanTab: {width: 58, height: 58, borderRadius: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', shadowColor: '#000000', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.18, shadowRadius: 14, elevation: 8, overflow: 'hidden'},
+  scanTabActive: {shadowOpacity: 0.28, shadowRadius: 18},
+  scanIcon: {fontSize: 20, color: '#111111', fontWeight: '700'},
+  scanLabel: {fontSize: 9, fontWeight: '800', color: '#8B8B8B', marginTop: 4, letterSpacing: 0.6, textTransform: 'uppercase'},
+  scanLabelActive: {color: '#FFFFFF'},
   webLayout: {flex: 1, flexDirection: 'row', backgroundColor: COLORS.background},
   sidebar: {width: 280, padding: 16, paddingTop: 24, backgroundColor: '#111111', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.06)'},
   sidebarHeader: {marginBottom: 20, borderRadius: 16, padding: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)'},

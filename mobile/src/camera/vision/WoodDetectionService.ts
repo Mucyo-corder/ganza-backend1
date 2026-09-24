@@ -156,29 +156,83 @@ export class WoodDetectionService implements IWoodDetectionService {
     return this.model.name;
   }
 
+  private classifyWoodObject(boxes: BoundingBox[]): 'timber_board' | 'plank' | 'wood_beam' | 'wood_post' | 'wood_panel' | 'other_supported_wood_material' | 'unsupported_object' {
+    if (boxes.length === 0) return 'unsupported_object';
+    const avgConfidence = boxes.reduce((sum, box) => sum + box.confidence, 0) / boxes.length;
+    if (avgConfidence < 0.45) return 'unsupported_object';
+    const avgAspect = boxes.reduce((sum, box) => sum + (box.width / Math.max(box.height, 0.0001)), 0) / boxes.length;
+    if (avgAspect > 2.4) return 'plank';
+    if (avgAspect > 1.2) return 'timber_board';
+    if (avgAspect > 0.7) return 'wood_panel';
+    return 'other_supported_wood_material';
+  }
+
   /**
    * Real image → real detection → real boxes.
-   * Never generates random counts.
+   * Never manufactures wood from arbitrary photos.
    */
   async detectBoards(imageUri: string): Promise<BoardDetectionResult> {
     if (!imageUri) throw new Error('imageUri is required');
     if (this.modelType === 'none') {
-      throw new Error(
-        'WoodDetectionService: No detection model configured. ' +
-          'Call setModel() with a real detection model before calling detectBoards(). ' +
-          'The app correctly separates the model interface so a trained timber/board model can be plugged in without rewriting the app.'
-      );
+      return {
+        count: 0,
+        confidence: 0,
+        boards: [],
+        timestamp: Date.now(),
+        objectType: 'unsupported_object',
+        analysisStatus: 'rejected',
+        rejectionReason: 'GANZA ntiyizeye ko iyi foto ari urubaho. Fata ifoto igaragaza urubaho neza.',
+        measurementConfidence: 0,
+      };
     }
-    const boundingBoxes = await this.model.detect(imageUri);
-    // Validate boxes – filter absurd values, require confidence
-    const valid = boundingBoxes.filter(b => b.confidence >= 0 && b.x >= 0 && b.y >= 0 && b.width > 0 && b.height > 0 && b.width <= 1 && b.height <= 1);
-    const boards: DetectedBoard[] = valid.map((box, index) => ({
-      id: `board-${index}-${Date.now()}`,
-      confidence: Math.round(box.confidence * 100) / 100,
-      boundingBox: {x: box.x, y: box.y, width: box.width, height: box.height},
-    }));
-    const confidence = this.calculateOverallConfidence(boards);
-    return {count: boards.length, confidence, boards, timestamp: Date.now()};
+
+    try {
+      const boundingBoxes = await this.model.detect(imageUri);
+      const valid = boundingBoxes.filter(b => b.confidence >= 0 && b.x >= 0 && b.y >= 0 && b.width > 0 && b.height > 0 && b.width <= 1 && b.height <= 1);
+      const boards: DetectedBoard[] = valid.map((box, index) => ({
+        id: `board-${index}-${Date.now()}`,
+        confidence: Math.round(box.confidence * 100) / 100,
+        boundingBox: {x: box.x, y: box.y, width: box.width, height: box.height},
+      }));
+      const confidence = this.calculateOverallConfidence(boards);
+      const objectType = this.classifyWoodObject(valid);
+
+      if (valid.length === 0 || confidence < 0.5 || objectType === 'unsupported_object') {
+        return {
+          count: 0,
+          confidence,
+          boards,
+          timestamp: Date.now(),
+          objectType,
+          analysisStatus: 'rejected',
+          rejectionReason: 'GANZA ntiyizeye ko iyi foto ari urubaho. Fata ifoto igaragaza urubaho neza.',
+          measurementConfidence: confidence,
+        };
+      }
+
+      return {
+        count: boards.length,
+        confidence,
+        boards,
+        timestamp: Date.now(),
+        objectType,
+        analysisStatus: confidence >= 0.8 ? 'valid' : 'needs_review',
+        measurementConfidence: confidence,
+        woodType: 'Ntibwemejwe',
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Vision analysis failed.';
+      return {
+        count: 0,
+        confidence: 0,
+        boards: [],
+        timestamp: Date.now(),
+        objectType: 'unsupported_object',
+        analysisStatus: 'rejected',
+        rejectionReason: message,
+        measurementConfidence: 0,
+      };
+    }
   }
 
   private calculateOverallConfidence(boards: DetectedBoard[]): number {
