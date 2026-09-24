@@ -42,6 +42,9 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
   const [qualityWarning, setQualityWarning] = useState<string | null>(null);
   const [flashMode, setFlashMode] = useState<'on' | 'off'>('off');
   const [cameraType, setCameraType] = useState<'back' | 'front'>('back');
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraMounted, setCameraMounted] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
   const device = useCameraDevice(cameraType);
 
   const setCameraRef = useCallback((ref: any) => {
@@ -69,16 +72,26 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
   };
 
   const capturePhoto = useCallback(async () => {
-    if (loading) return;
+    const cameraIsReady = Boolean(hasCameraPermission) && Boolean(device) && cameraMounted && cameraReady && !isCapturing;
+    if (loading || isCapturing || !cameraIsReady) {
+      if (!cameraIsReady) {
+        Alert.alert('Camera ntitegura', 'Tegereza camera yitegure mbere yo gufata ifoto.');
+      }
+      return;
+    }
     setLoading(true);
+    setIsCapturing(true);
     setQualityWarning(null);
     try {
       let uri: string | null = null;
       if (device && cameraRef.current) {
         cameraService.setCameraRef(cameraRef.current);
+        console.log('PHOTO_CAPTURE_STARTED');
         const image = await cameraService.captureImage({flashMode, quality: 'high'});
+        console.log('PHOTO_CAPTURE_SUCCESS', image?.uri);
         if (!image) throw new Error(t('backendError'));
         uri = await compressImageUri(image.uri, 1280, 0.8);
+        console.log('PHOTO_PATH', uri);
       } else {
         const picked = await cameraService.pickFromLibrary();
         if (!picked) {
@@ -108,8 +121,9 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
       Alert.alert(t('error'), msg);
     } finally {
       setLoading(false);
+      setIsCapturing(false);
     }
-  }, [device, flashMode, loading, navigation, t]);
+  }, [device, flashMode, loading, navigation, t, hasCameraPermission, cameraMounted, cameraReady, isCapturing]);
 
   const handleWebFile = async (e: unknown) => {
     const input = e as {target: {files: FileList | null}};
@@ -128,6 +142,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
   };
 
   const runDetection = async (imageUri: string) => {
+    console.log('ANALYSIS_STARTED', imageUri);
     setLoading(true);
     setDetectionResult(null);
     try {
@@ -234,6 +249,15 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
               style={StyleSheet.absoluteFill}
               device={device}
               isActive={hasCameraPermission === true && !capturedImage}
+              onError={(error) => {
+                console.warn('VISION_CAMERA_ERROR', error);
+                setCameraReady(false);
+                setCameraMounted(false);
+              }}
+              onStarted={() => {
+                setCameraMounted(true);
+                setCameraReady(true);
+              }}
             />
           ) : (
             <View style={[StyleSheet.absoluteFill, styles.fallbackCameraBg]}>
@@ -281,13 +305,23 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
             <Text style={styles.controlLabel}>{t('flash')}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.captureButton} onPress={capturePhoto} disabled={loading} activeOpacity={0.88}>
+          <TouchableOpacity
+            style={styles.captureButton}
+            onPress={capturePhoto}
+            disabled={loading || isCapturing || !cameraReady || !cameraMounted || !device || hasCameraPermission !== true}
+            activeOpacity={0.88}
+          >
             <View style={styles.captureOuter}>
-              <LinearGradient colors={['#60A5FA', '#2563EB'] as unknown as string[]} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.captureGradient}>
+              <LinearGradient
+                colors={(!cameraReady || !cameraMounted || !device || hasCameraPermission !== true) ? ['#4B4B4B', '#2B2B2B'] : ['#F5F5F5', '#D9D9D9']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={styles.captureGradient}
+              >
                 <View style={styles.captureInner} />
               </LinearGradient>
             </View>
-            <Text style={styles.captureLabel}>Fata ifoto</Text>
+            <Text style={styles.captureLabel}>{cameraReady ? 'Fata ifoto' : 'Tegereza kamera'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.controlButton} onPress={() => setCameraType(cameraType === 'back' ? 'front' : 'back')} activeOpacity={0.8}>

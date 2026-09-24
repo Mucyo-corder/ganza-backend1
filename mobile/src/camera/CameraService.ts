@@ -68,7 +68,7 @@ export class CameraService {
    */
   async captureImage(config?: Partial<CameraConfig>): Promise<CapturedImage | null> {
     if (!this.cameraRef || typeof this.cameraRef.takePhoto !== 'function') {
-      throw new Error('Camera is not ready. Wait for the camera preview before taking a photo.');
+      throw new Error('Camera ntitegura. Tegereza camera yitegure mbere yo gufata ifoto.');
     }
     try {
       const captureResult = await this.cameraRef.takePhoto({
@@ -76,9 +76,15 @@ export class CameraService {
         qualityPrioritization: config?.quality === 'low' ? 'speed' : config?.quality === 'max' ? 'quality' : 'balanced',
       });
       if (!captureResult?.path) {
-        throw new Error('Camera did not return an image path.');
+        throw new Error('Camera ntabwo yagaruye ifoto yemewe. Reba niba kamera ikora neza.');
       }
+
       const uri = captureResult.path.startsWith('file://') ? captureResult.path : `file://${captureResult.path}`;
+      const probe = await fetch(uri).then(res => res.ok).catch(() => false);
+      if (!probe) {
+        throw new Error('Ifoto yafatiwe ariko ntibashoboye kuyibona. Ongera ufate ifoto.');
+      }
+
       return {
         uri,
         width: captureResult.width || 1920,
