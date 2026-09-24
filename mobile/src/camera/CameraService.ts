@@ -1,4 +1,6 @@
-import {Platform, PermissionsAndroid, Alert, Linking} from 'react-native';
+import {Platform, Linking} from 'react-native';
+import {VisionCamera} from 'react-native-vision-camera';
+import type {CameraPhotoOutput} from 'react-native-vision-camera';
 
 export type CameraType = 'back' | 'front';
 export type FlashMode = 'on' | 'off' | 'auto';
@@ -27,7 +29,8 @@ export interface CapturedImage {
  */
 export class CameraService {
   private static instance: CameraService;
-  private cameraRef: unknown = null;
+  private cameraRef: {controller?: unknown} | null = null;
+  private photoOutput: CameraPhotoOutput | null = null;
 
   static getInstance(): CameraService {
     if (!CameraService.instance) {
@@ -36,99 +39,49 @@ export class CameraService {
     return CameraService.instance;
   }
 
-  setCameraRef(ref: unknown): void {
+  setCameraRef(ref: {controller?: unknown} | null): void {
     this.cameraRef = ref;
   }
 
+  setPhotoOutput(output: CameraPhotoOutput | null): void {
+    this.photoOutput = output;
+  }
+
   async requestCameraPermission(): Promise<boolean> {
-    if (Platform.OS === 'android') {
-      const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
-        title: 'GANZA Kamera',
-        message: 'GANZA ikeneye kamera kugira ngo isuzume imbaho.',
-        buttonNeutral: 'Nyuma',
-        buttonNegative: 'Oya',
-        buttonPositive: 'Yego',
-      });
-      return result === PermissionsAndroid.RESULTS.GRANTED;
-    }
-    if (Platform.OS === 'ios') {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const {Camera} = require('react-native-vision-camera');
-        const status = await Camera.requestCameraPermission();
-        return status === 'granted' || status === 'authorized';
-      } catch {
-        // If vision-camera not installed, assume granted – actual capture will fail gracefully
-        return true;
-      }
-    }
-    return true;
+    if (Platform.OS === 'web') return true;
+    return await VisionCamera.requestCameraPermission();
   }
 
   async requestStoragePermission(): Promise<boolean> {
-    if (Platform.OS === 'android' && Platform.Version < 33) {
-      const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE, {
-        title: 'Ububiko',
-        message: 'GANZA ikeneye ububiko kugira ngo ibike amafoto.',
-        buttonNeutral: 'Nyuma',
-        buttonNegative: 'Oya',
-        buttonPositive: 'Yego',
-      });
-      return result === PermissionsAndroid.RESULTS.GRANTED;
-    }
     return true;
   }
 
   async checkCameraPermission(): Promise<boolean> {
-    if (Platform.OS === 'android') {
-      const result = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA);
-      return result;
-    }
-    if (Platform.OS === 'ios') {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const {Camera} = require('react-native-vision-camera');
-        const status = await Camera.getCameraPermissionStatus();
-        return status === 'granted' || status === 'authorized';
-      } catch {
-        return true;
-      }
-    }
-    return true;
+    if (Platform.OS === 'web') return true;
+    return VisionCamera.cameraPermissionStatus === 'authorized';
   }
 
   /**
    * Capture via the bound camera ref (vision-camera).
-   * The ref is expected to expose takePhoto() or takePictureAsync().
+  * VisionCamera v5 exposes takePhoto(). Do not fall back to the old
+  * react-native-camera takePictureAsync API.
    */
   async captureImage(config?: Partial<CameraConfig>): Promise<CapturedImage | null> {
-    if (!this.cameraRef) {
-      throw new Error('Kamera ntiyiteguye. Ongera ugerageze.');
+    if (!this.cameraRef || !this.photoOutput) {
+      throw new Error('Camera is not ready. Wait for the camera preview before taking a photo.');
     }
     try {
-      const camera = this.cameraRef as {
-        takePhoto?: (opts?: unknown) => Promise<{path?: string; uri?: string; width?: number; height?: number}>;
-        takePictureAsync?: (opts?: unknown) => Promise<{uri: string; width?: number; height?: number}>;
+      const captureResult = await this.photoOutput.capturePhotoToFile({
+        flashMode: config?.flashMode === 'on' || config?.flashMode === 'auto' ? config.flashMode : 'off',
+      }, {});
+      const uri = captureResult.filePath.startsWith('file://') ? captureResult.filePath : `file://${captureResult.filePath}`;
+
+      const data = {
+        uri,
+        width: 0,
+        height: 0,
       };
-      let data: {uri: string; width?: number; height?: number} | null = null;
-      if (camera.takePhoto) {
-        const res = await camera.takePhoto({
-          flash: config?.flashMode || 'off',
-          qualityPrioritization: 'balanced',
-        });
-        const uri = res.path ? `file://${res.path}` : res.uri;
-        if (!uri) throw new Error('Ifoto yagaragaye ariko ntizagaragaye neza');
-        data = {uri, width: res.width, height: res.height};
-      } else if (camera.takePictureAsync) {
-        const res = await camera.takePictureAsync({
-          quality: config?.quality === 'max' ? 1 : config?.quality === 'high' ? 0.85 : 0.6,
-          skipProcessing: false,
-        });
-        data = {uri: res.uri, width: res.width, height: res.height};
-      } else {
-        throw new Error('Camera ref missing takePhoto/takePictureAsync');
-      }
-      if (!data) throw new Error('Gufata ifoto byanze');
+
       return {
         uri: data.uri,
         width: data.width || 1920,
@@ -137,7 +90,7 @@ export class CameraService {
         mime: 'image/jpeg',
       };
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Gufata ifoto byanze';
+      const msg = error instanceof Error ? error.message : 'Camera capture failed.';
       throw new Error(msg);
     }
   }

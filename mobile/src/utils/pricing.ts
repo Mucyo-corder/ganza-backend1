@@ -23,6 +23,12 @@ export function calculatePrice(
   config: PriceConfig,
   metrics: { pieces: number; totalLengthM: number; totalAreaM2: number; totalVolumeM3: number }
 ): PricingResult {
+  if (!Number.isFinite(config.valuePerUnit) || config.valuePerUnit <= 0) {
+    throw new Error('Unit price must be greater than zero');
+  }
+  if (![metrics.pieces, metrics.totalLengthM, metrics.totalAreaM2, metrics.totalVolumeM3].every(value => Number.isFinite(value) && value >= 0)) {
+    throw new Error('Calculated quantities must be finite and non-negative');
+  }
   let total = 0;
   let formula = '';
   if (config.basis === 'piece') {

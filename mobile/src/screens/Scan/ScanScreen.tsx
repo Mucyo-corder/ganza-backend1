@@ -13,7 +13,10 @@ import {
 } from 'react-native';
 import {
   Camera,
+  CameraRef,
+  useCameraPermission,
   useCameraDevice,
+  usePhotoOutput,
 } from 'react-native-vision-camera';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../../hooks/useAuth';
@@ -32,7 +35,9 @@ import {checkPhotoQuality} from '../../utils/photoQuality';
 export default function ScanScreen({navigation}: {navigation: {navigate: (s: string, p?: unknown) => void}}) {
   const {user} = useAuth();
   const {t} = useLocalization();
-  const cameraRef = useRef<any>(null);
+  const cameraRef = useRef<CameraRef>(null);
+  const photoOutput = usePhotoOutput({quality: 0.9, qualityPrioritization: 'quality'});
+  const {hasPermission, requestPermission} = useCameraPermission();
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [detectionResult, setDetectionResult] = useState<BoardDetectionResult | null>(null);
@@ -42,18 +47,26 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
   const [cameraType, setCameraType] = useState<'back' | 'front'>('back');
   const device = useCameraDevice(cameraType);
 
+  const setCameraRef = useCallback((ref: CameraRef | null) => {
+    cameraRef.current = ref;
+    cameraService.setCameraRef(ref);
+  }, []);
+
   useEffect(() => {
     if (Platform.OS === 'web') {
       setHasCameraPermission(true);
       return;
     }
     requestPermissions();
-  }, []);
+  }, [hasPermission]);
+
+  useEffect(() => {
+    cameraService.setPhotoOutput(photoOutput);
+  }, [photoOutput]);
 
   const requestPermissions = async () => {
-    const ok = await cameraService.requestCameraPermission();
-    const storageOk = await cameraService.requestStoragePermission();
-    setHasCameraPermission(ok && storageOk);
+    const ok = hasPermission || await requestPermission();
+    setHasCameraPermission(ok);
     if (!ok) {
       Alert.alert(t('error'), t('cameraPermissionDenied'), [
         {text: t('cancel'), style: 'cancel'},
@@ -83,7 +96,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
       }
       setCapturedImage(uri);
 
-      const quality = checkPhotoQuality({requireReference: true});
+      const quality = checkPhotoQuality({requireReference: true, imageUri: uri});
       if (!quality.ok) {
         setQualityWarning(quality.message);
         Alert.alert('Ifoto ntisobanutse neza.', quality.recommendation || 'Ongera ufate ifoto.');
@@ -113,7 +126,7 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
     setCapturedImage(url);
     setLoading(true);
     try {
-      const q = checkPhotoQuality({requireReference: true});
+      const q = checkPhotoQuality({requireReference: true, imageUri: url});
       if (q.needsReference) setQualityWarning('Ibipimo byagereranijwe — nta rurerure');
       await runDetection(url);
     } finally {
@@ -227,9 +240,10 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
         <View style={styles.cameraWrap}>
           {device ? (
             <Camera
-              ref={cameraRef}
+              ref={setCameraRef}
               style={StyleSheet.absoluteFill}
               device={device}
+              outputs={[photoOutput]}
               isActive={hasCameraPermission === true && !capturedImage}
             />
           ) : (

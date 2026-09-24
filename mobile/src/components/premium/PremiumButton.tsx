@@ -1,6 +1,5 @@
 import React from 'react';
 import {TouchableOpacity, Text, StyleSheet, ActivityIndicator, View, ViewStyle, TextStyle} from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import {COLORS, SPACING, FONT_SIZES, BORDER_RADIUS, SHADOWS} from '../../constants/theme';
 
 interface Props {
@@ -77,7 +76,7 @@ export const PremiumButton: React.FC<Props> = ({
     );
   }
 
-  // Primary / metallic with gradient
+  // Primary action uses a solid monochrome surface.
   return (
     <TouchableOpacity
       style={[styles.base, styles.primaryWrap, sizeStyle, disabled && styles.disabled, fullWidth && {alignSelf: 'stretch'}, style]}
@@ -85,23 +84,7 @@ export const PremiumButton: React.FC<Props> = ({
       disabled={disabled || loading}
       activeOpacity={0.92}
     >
-      <LinearGradient
-        colors={
-          variant === 'metallic'
-            ? (['#EAF2FD', '#A9BFD3', '#7BA0C2'] as unknown as string[])
-            : (['#60A5FA', '#3B82F6', '#2563EB'] as unknown as string[])
-        }
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 0}}
-        style={StyleSheet.absoluteFill}
-      />
-      {/* Top highlight */}
-      <LinearGradient
-        colors={['rgba(255,255,255,0.28)', 'rgba(255,255,255,0.00)'] as unknown as string[]}
-        start={{x: 0.5, y: 0}}
-        end={{x: 0.5, y: 0.6}}
-        style={styles.primaryHighlight}
-      />
+      <View style={styles.primarySurface} />
       {content}
     </TouchableOpacity>
   );
@@ -136,15 +119,16 @@ const styles = StyleSheet.create({
   },
   primaryWrap: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
+    borderColor: 'rgba(255,255,255,0.12)',
     ...SHADOWS.glowSoft,
   },
-  primaryHighlight: {
+  primarySurface: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 18,
+    bottom: 0,
+    backgroundColor: COLORS.textPrimary,
   },
   secondary: {
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -162,7 +146,7 @@ const styles = StyleSheet.create({
   ghost: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: 'rgba(96,165,250,0.35)',
+    borderColor: 'rgba(255,255,255,0.18)',
   },
   disabled: {
     opacity: 0.5,
@@ -179,13 +163,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    color: '#fff',
+    color: '#111827',
     textAlign: 'center',
   },
   textSecondary: {
-    color: '#EAF2FD',
+    color: '#F5F7FA',
   },
   textGhost: {
-    color: '#93C5FD',
+    color: '#F5F7FA',
   },
 });

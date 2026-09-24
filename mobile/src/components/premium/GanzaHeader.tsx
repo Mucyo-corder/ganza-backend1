@@ -1,6 +1,5 @@
 import React from 'react';
 import {View, Text, StyleSheet, Image, TouchableOpacity, Platform} from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 
 interface Props {
   onProfilePress?: () => void;
@@ -38,22 +37,11 @@ export const GanzaHeader: React.FC<Props> = ({
       {/* Logo row — scrolls naturally */}
       <View style={styles.row}>
         <View style={styles.logoWrap}>
-          <LinearGradient
-            colors={['#EAF2FD', '#A9BFD3', '#7BA0C2'] as unknown as string[]}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
-            style={styles.logoRim}
-          >
+          <View style={styles.logoRim}>
             <View style={styles.logoInner}>
-              <LinearGradient
-                colors={['#0A1A33', '#0F2447', '#162A4F'] as unknown as string[]}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={StyleSheet.absoluteFill}
-              />
               <Image source={GANZA_ICON} style={styles.logoImage} resizeMode="contain" />
             </View>
-          </LinearGradient>
+          </View>
         </View>
 
         <View style={styles.wordmark}>
@@ -73,7 +61,6 @@ export const GanzaHeader: React.FC<Props> = ({
           ) : null}
           {onProfilePress ? (
             <TouchableOpacity onPress={onProfilePress} style={[styles.iconButton, styles.profileButton]} activeOpacity={0.8}>
-              <LinearGradient colors={['#60A5FA', '#3B82F6'] as unknown as string[]} style={StyleSheet.absoluteFill} />
               <Text style={styles.profileInitial}>G</Text>
             </TouchableOpacity>
           ) : null}
@@ -111,16 +98,18 @@ const styles = StyleSheet.create({
   logoRim: {
     width: 48,
     height: 48,
-    borderRadius: 14,
-    padding: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    padding: 4,
   },
   logoInner: {
     flex: 1,
-    borderRadius: 13,
+    borderRadius: 4,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0A1930',
+    backgroundColor: '#202020',
   },
   logoImage: {
     width: 36,
@@ -134,7 +123,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
     letterSpacing: 2.2,
-    color: '#F1F6FF',
+    color: '#F5F7FA',
   },
   ganzaCompact: {
     fontSize: 18,
@@ -171,10 +160,10 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 38,
     height: 38,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 6,
+    backgroundColor: '#202020',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.06)',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
@@ -205,9 +194,9 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   profileButton: {
-    borderRadius: 12,
+    borderRadius: 6,
     overflow: 'hidden',
-    borderColor: 'rgba(96,165,250,0.25)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   profileInitial: {
     fontSize: 14,
@@ -216,7 +205,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     marginTop: 12,
   },
 });

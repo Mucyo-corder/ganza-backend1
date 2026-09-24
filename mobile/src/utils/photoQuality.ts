@@ -26,6 +26,7 @@ export interface QualityResult {
 export interface QualityCheckOptions {
   requireReference?: boolean; // if pricing by m³ needs reliable scale
   imageUri?: string; // future: pass to native blur detection
+  nativeMetrics?: NativeQualityMetrics;
 }
 
 /**
@@ -39,6 +40,20 @@ export function checkPhotoQuality(opts: QualityCheckOptions = {}): QualityResult
   // Without native analysis we cannot claim blur/darkness — we surface reference warning honestly.
   if (opts.requireReference) {
     issues.push('no_reference');
+  }
+
+  // A URI alone is not evidence that the image is sharp or correctly exposed.
+  // Do not let the review screen present unverified computer-vision output.
+  if (opts.imageUri && !opts.nativeMetrics) {
+    issues.push('low_visibility');
+    return {
+      ok: false,
+      score: 0,
+      issues,
+      message: 'Ubwiza bw\'ifoto ntibwashoboye kugenzurwa kuri iki gikoresho.',
+      recommendation: 'Ongera ufate ifoto cyangwa ukosore umubare n\'ibipimo ukoresheje ibipimo wapimye.',
+      needsReference: opts.requireReference ?? true,
+    };
   }
 
   const hasCritical = issues.includes('blur') || issues.includes('darkness') || issues.includes('overexposure');

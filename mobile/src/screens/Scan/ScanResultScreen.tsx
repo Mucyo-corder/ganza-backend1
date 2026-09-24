@@ -13,7 +13,7 @@ import {GlassCard} from '../../components/premium/GlassCard';
 import {PremiumButton} from '../../components/premium/PremiumButton';
 import {StatusPill} from '../../components/premium/StatusPill';
 import {calculatePrice, priceLabel, DEFAULT_PRICE_CONFIG, PriceConfig} from '../../utils/pricing';
-import {volumeOnePieceM3, formatDimensions, formatVolume, formatArea, totalVolumeM3, totalAreaM2, totalLengthM, MeasurementMethod, MEASUREMENT_LABEL} from '../../utils/woodMath';
+import {volumeOnePieceM3, formatDimensions, formatVolume, formatArea, MeasurementMethod, MEASUREMENT_LABEL, validateDimensions} from '../../utils/woodMath';
 
 interface Props {
   route: {params: {result: BoardDetectionResult; imageUri: string; qualityWarning?: string | null}};
@@ -24,13 +24,14 @@ export default function ScanResultScreen({route, navigation}: Props) {
   const {t} = useLocalization();
   const {user} = useAuth();
   const {result, imageUri, qualityWarning} = route.params;
+  const hasReliableDetection = result.count > 0 && result.boards.length > 0 && result.confidence > 0;
 
   // User correction state
   const [quantity, setQuantity] = useState<number>(result.count);
   const [woodType, setWoodType] = useState<string>('Pine');
-  const [lengthM, setLengthM] = useState<string>('3.0');
-  const [widthM, setWidthM] = useState<string>('0.20');
-  const [thicknessM, setThicknessM] = useState<string>('0.05');
+  const [lengthM, setLengthM] = useState<string>('');
+  const [widthM, setWidthM] = useState<string>('');
+  const [thicknessM, setThicknessM] = useState<string>('');
   const [confidence, setConfidence] = useState<number>(result.confidence);
   const [measurementMethod, setMeasurementMethod] = useState<MeasurementMethod>('estimated');
   const [hasReference, setHasReference] = useState(false);
@@ -42,10 +43,10 @@ export default function ScanResultScreen({route, navigation}: Props) {
   const numericLength = parseFloat(lengthM) || 0;
   const numericWidth = parseFloat(widthM) || 0;
   const numericThickness = parseFloat(thicknessM) || 0;
-  const numericPrice = parseFloat(pricePerUnit.replace(/[^\d]/g, '')) || 0;
+  const numericPrice = parseFloat(pricePerUnit.replace(/[^\d.]/g, '')) || 0;
 
   // Dimensions sanity
-  const dimsValid = numericLength > 0 && numericWidth > 0 && numericThickness > 0;
+  const dimsValid = validateDimensions({length: numericLength, width: numericWidth, thickness: numericThickness}) === null;
   const oneVolume = dimsValid ? numericLength * numericWidth * numericThickness : 0;
   const totalVolume = dimsValid ? oneVolume * quantity : 0;
   const totalArea = dimsValid ? numericLength * numericWidth * quantity : 0;
@@ -77,6 +78,10 @@ export default function ScanResultScreen({route, navigation}: Props) {
       Alert.alert(t('error'), 'Ibipimo ntibisobanutse — zuza length/width/thickness');
       return;
     }
+    if (!hasReliableDetection && !isUserCorrected) {
+      Alert.alert(t('error'), 'Nta model yemewe yagaragaje imbaho. Injiza umubare n\'ibipimo byapimwe mbere yo kubika.');
+      return;
+    }
     setSaving(true);
     try {
       const detectionResult = {...result, count: quantity, confidence, boards: result.boards.slice(0, quantity)};
@@ -106,7 +111,7 @@ export default function ScanResultScreen({route, navigation}: Props) {
         totalLengthM: totalLen,
         measurementMethod: hasReference ? measurementMethod : 'estimated',
         confidence,
-        source: 'scan',
+        source: hasReliableDetection ? 'scan' : 'manual',
         isUserCorrected,
         syncStatus: 'pending',
         createdAt: Date.now(),

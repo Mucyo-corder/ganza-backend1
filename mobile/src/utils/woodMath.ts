@@ -58,6 +58,8 @@ export function fromMeters(valueM: number, unit: Unit): number {
  * Volume for one piece: length × width × thickness (all in meters) = m³
  */
 export function volumeOnePieceM3(d: Dimensions): number {
+  const error = validateDimensions(d);
+  if (error) throw new Error(error);
   return d.length * d.width * d.thickness;
 }
 
@@ -65,6 +67,7 @@ export function volumeOnePieceM3(d: Dimensions): number {
  * Group volume = one-piece volume × quantity
  */
 export function volumeGroupM3(group: WoodGroup): number {
+  validateWoodGroup(group);
   return volumeOnePieceM3(group.dimensions) * group.quantity;
 }
 
@@ -73,11 +76,18 @@ export function areaOnePieceM2(d: Dimensions): number {
 }
 
 export function areaGroupM2(group: WoodGroup): number {
+  validateWoodGroup(group);
   return areaOnePieceM2(group.dimensions) * group.quantity;
 }
 
 export function totalLengthM(group: WoodGroup): number {
+  validateWoodGroup(group);
   return group.dimensions.length * group.quantity;
+}
+
+export function validateWoodGroup(group: WoodGroup): string | null {
+  if (!Number.isInteger(group.quantity) || group.quantity <= 0) return 'Umubare ugomba kuba integer iri hejuru ya 0';
+  return validateDimensions(group.dimensions);
 }
 
 export function totalVolumeM3(groups: WoodGroup[]): number {

@@ -3,7 +3,6 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {View, Text, StyleSheet, Platform, Image} from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../hooks/useAuth';
 import {useLocalization} from '../localization/LocalizationContext';
 import {COLORS} from '../constants/theme';
@@ -36,14 +35,9 @@ function TabIcon({icon, label, focused, isScan}: {icon: string; label: string; f
   if (isScan) {
     return (
       <View style={styles.scanWrap}>
-        <LinearGradient
-          colors={focused ? (['#60A5FA', '#2563EB'] as unknown as string[]) : (['#3B82F6', '#1E40AF'] as unknown as string[])}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={[styles.scanTab, focused && styles.scanTabActive]}
-        >
+        <View style={[styles.scanTab, focused && styles.scanTabActive]}>
           <Text style={styles.scanIcon}>{icon}</Text>
-        </LinearGradient>
+        </View>
         <Text style={[styles.scanLabel, focused && styles.scanLabelActive]}>{label}</Text>
       </View>
     );
@@ -69,17 +63,16 @@ function HomeTabs() {
     // Web: simple sidebar — ONLY wood-stock management, no agent
     return (
       <View style={styles.webLayout}>
-        <LinearGradient colors={['#050A1B', '#0A1930', '#0D2447'] as unknown as string[]} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.sidebar}>
+        <View style={styles.sidebar}>
           <View style={styles.sidebarHeader}>
             <View style={styles.sidebarLogoWrap}>
-              <LinearGradient colors={['#EAF2FD', '#A9BFD3', '#7BA0C2'] as unknown as string[]} style={styles.sidebarLogoRim}>
+              <View style={styles.sidebarLogoRim}>
                 <View style={styles.sidebarLogoInner}>
                   <Image source={GANZA_ICON} style={styles.sidebarLogoImg} resizeMode="contain" />
                 </View>
-              </LinearGradient>
+              </View>
               <View style={styles.sidebarWordmark}>
                 <Text style={styles.sidebarLogoText}>GANZA</Text>
-                <Text style={styles.sidebarSub}>Wood inventory</Text>
               </View>
             </View>
           </View>
@@ -91,10 +84,7 @@ function HomeTabs() {
           <SidebarItem label={t('reports')} icon="▭" />
           <SidebarItem label={t('settingsScreen')} icon="⚙︎" />
 
-          <View style={styles.sidebarFooter}>
-            <Text style={styles.sidebarFooterText}>com.ganza.app • Calm • Premium</Text>
-          </View>
-        </LinearGradient>
+        </View>
         <View style={styles.webContent}>
           <Tab.Navigator screenOptions={{headerShown: false, tabBarStyle: {display: 'none'}}}>
             <Tab.Screen name="Home" component={DashboardScreen} />
@@ -114,23 +104,23 @@ function HomeTabs() {
       screenOptions={({route}) => ({
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarActiveTintColor: '#60A5FA',
-        tabBarInactiveTintColor: '#5E728C',
+        tabBarActiveTintColor: '#F5F7FA',
+        tabBarInactiveTintColor: '#8A98A8',
         tabBarStyle: styles.tabBar,
         tabBarBackground: () => (
           <View style={StyleSheet.absoluteFill}>
-            <View style={[StyleSheet.absoluteFill, {backgroundColor: 'rgba(8,16,38,0.92)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)'}]} />
+            <View style={[StyleSheet.absoluteFill, {backgroundColor: '#111111', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)'}]} />
             <View style={styles.tabBarHighlight} />
           </View>
         ),
         tabBarIcon: ({focused}) => {
           const name = route.name;
           if (name === 'Home') return <TabIcon icon="◈" label={t('home')} focused={focused} />;
-          if (name === 'Scan') return <TabIcon icon="⬢" label="Fata" focused={focused} isScan />;
-          if (name === 'Inventory') return <TabIcon icon="⬡" label="Ububiko" focused={focused} />;
-          if (name === 'Sales') return <TabIcon icon="◆" label="Gurisha" focused={focused} />;
-          if (name === 'Reports') return <TabIcon icon="▭" label="Raporo" focused={focused} />;
-          if (name === 'Settings') return <TabIcon icon="⚙︎" label="Igena" focused={focused} />;
+          if (name === 'Scan') return <TabIcon icon="⬢" label={t('scan')} focused={focused} isScan />;
+          if (name === 'Inventory') return <TabIcon icon="⬡" label={t('inventory')} focused={focused} />;
+          if (name === 'Sales') return <TabIcon icon="◆" label={t('sales')} focused={focused} />;
+          if (name === 'Reports') return <TabIcon icon="▭" label={t('reports')} focused={focused} />;
+          if (name === 'Settings') return <TabIcon icon="⚙︎" label={t('settings')} focused={focused} />;
           return <TabIcon icon="•" label={name} focused={focused} />;
         },
       })}
@@ -214,32 +204,32 @@ const styles = StyleSheet.create({
   },
   tabItem: {alignItems: 'center', justifyContent: 'center', minWidth: 56, paddingTop: 4},
   tabIconWrap: {width: 36, height: 28, borderRadius: 12, justifyContent: 'center', alignItems: 'center', overflow: 'hidden'},
-  tabIconWrapActive: {backgroundColor: 'rgba(96,165,250,0.10)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.14)'},
-  tabIcon: {fontSize: 16, color: '#5E728C', opacity: 0.85},
-  tabIconActive: {color: '#93C5FD', opacity: 1},
-  tabLabel: {fontSize: 9, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: '#5E728C', marginTop: 3},
-  tabLabelActive: {color: '#93C5FD'},
-  activeDot: {width: 4, height: 4, borderRadius: 2, backgroundColor: '#60A5FA', marginTop: 3},
+  tabIconWrapActive: {backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)'},
+  tabIcon: {fontSize: 16, color: '#8A98A8', opacity: 0.85},
+  tabIconActive: {color: '#F5F7FA', opacity: 1},
+  tabLabel: {fontSize: 9, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: '#8A98A8', marginTop: 3},
+  tabLabelActive: {color: '#F5F7FA'},
+  activeDot: {width: 4, height: 4, borderRadius: 2, backgroundColor: '#F5F7FA', marginTop: 3},
   scanWrap: {alignItems: 'center', justifyContent: 'center', top: -6},
-  scanTab: {width: 56, height: 56, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', shadowColor: '#3B82F6', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.35, shadowRadius: 16, elevation: 10, overflow: 'hidden'},
+  scanTab: {width: 56, height: 56, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#FFFFFF', shadowColor: '#000000', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.20, shadowRadius: 12, elevation: 8, overflow: 'hidden'},
   scanTabActive: {shadowOpacity: 0.45, shadowRadius: 20},
-  scanIcon: {fontSize: 20, color: '#fff', fontWeight: '700'},
-  scanLabel: {fontSize: 9, fontWeight: '800', color: '#5E728C', marginTop: 4, letterSpacing: 0.6, textTransform: 'uppercase'},
-  scanLabelActive: {color: '#93C5FD'},
+  scanIcon: {fontSize: 20, color: '#111827', fontWeight: '700'},
+  scanLabel: {fontSize: 9, fontWeight: '800', color: '#8A98A8', marginTop: 4, letterSpacing: 0.6, textTransform: 'uppercase'},
+  scanLabelActive: {color: '#F5F7FA'},
   webLayout: {flex: 1, flexDirection: 'row', backgroundColor: COLORS.background},
-  sidebar: {width: 280, padding: 16, paddingTop: 24, borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.06)'},
+  sidebar: {width: 280, padding: 16, paddingTop: 24, backgroundColor: '#111111', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.06)'},
   sidebarHeader: {marginBottom: 20, borderRadius: 16, padding: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)'},
   sidebarLogoWrap: {flexDirection: 'row', alignItems: 'center'},
-  sidebarLogoRim: {width: 46, height: 46, borderRadius: 14, padding: 1},
-  sidebarLogoInner: {flex: 1, borderRadius: 13, backgroundColor: '#0A1930', justifyContent: 'center', alignItems: 'center', overflow: 'hidden'},
+  sidebarLogoRim: {width: 46, height: 46, borderRadius: 8, padding: 4, borderWidth: 1, borderColor: '#FFFFFF'},
+  sidebarLogoInner: {flex: 1, borderRadius: 4, backgroundColor: '#202020', justifyContent: 'center', alignItems: 'center', overflow: 'hidden'},
   sidebarLogoImg: {width: 34, height: 34},
   sidebarWordmark: {marginLeft: 12},
   sidebarLogoText: {fontSize: 20, fontWeight: '900', letterSpacing: 2.2, color: '#F1F6FF'},
   sidebarSub: {fontSize: 10, color: '#8FA2BB', letterSpacing: 0.6, marginTop: 1},
   sidebarItem: {flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 12, borderRadius: 14, marginBottom: 4, borderWidth: 1, borderColor: 'transparent'},
-  sidebarItemActive: {backgroundColor: 'rgba(96,165,250,0.10)', borderColor: 'rgba(96,165,250,0.14)'},
-  sidebarActiveBar: {position: 'absolute', left: 0, top: 8, bottom: 8, width: 3, borderRadius: 3, backgroundColor: '#60A5FA'},
-  sidebarActiveDot: {width: 6, height: 6, borderRadius: 3, backgroundColor: '#60A5FA', marginLeft: 'auto'},
+  sidebarItemActive: {backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.14)'},
+  sidebarActiveBar: {position: 'absolute', left: 0, top: 8, bottom: 8, width: 3, borderRadius: 3, backgroundColor: '#FFFFFF'},
+  sidebarActiveDot: {width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFFFFF', marginLeft: 'auto'},
   sidebarIconBox: {width: 30, height: 30, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center', marginRight: 12},
   sidebarIcon: {fontSize: 13, color: '#CBD8E6', fontWeight: '700'},
   sidebarLabel: {color: '#8FA2BB', fontSize: 13, fontWeight: '600'},

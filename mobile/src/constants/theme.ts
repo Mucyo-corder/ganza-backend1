@@ -2,27 +2,26 @@
 // Visual DNA extracted directly from GANZA icon: silver-blue metallic, steel tones, luminous highlights, deep navy ambient
 
 export const COLORS = {
-  // — Deep sophisticated background — //
-  background: '#040A1B',
-  backgroundLight: '#091735',
-  backgroundMid: '#0D2447',
-  backgroundSoft: '#0F2A52',
+  // Minimal professional dark system
+  background: '#05070B',
+  backgroundLight: '#0D1117',
+  backgroundMid: '#111827',
+  backgroundSoft: '#1A2433',
 
-  // — Glass surfaces (semi-transparent frosted glass) — //
-  surface: 'rgba(255,255,255,0.06)',
-  surfaceLight: 'rgba(255,255,255,0.10)',
-  surfaceStrong: 'rgba(255,255,255,0.12)',
-  surfaceSolid: '#0F1E38',
-  surfaceLightSolid: '#162A4F',
-  card: 'rgba(255,255,255,0.07)',
-  cardSolid: '#0E1E3C',
-  cardElevated: 'rgba(255,255,255,0.09)',
+  // — Surfaces — //
+  surface: 'rgba(255,255,255,0.03)',
+  surfaceLight: 'rgba(255,255,255,0.06)',
+  surfaceStrong: 'rgba(255,255,255,0.08)',
+  surfaceSolid: '#111827',
+  surfaceLightSolid: '#1B2430',
+  card: 'rgba(255,255,255,0.04)',
+  cardSolid: '#121820',
+  cardElevated: 'rgba(255,255,255,0.06)',
 
-  // — Borders — luminous thin edges — //
-  border: 'rgba(255,255,255,0.09)',
-  borderLight: 'rgba(255,255,255,0.14)',
-  borderLuminous: 'rgba(170,205,255,0.18)',
-  borderGlass: 'rgba(255,255,255,0.08)',
+  border: 'rgba(255,255,255,0.08)',
+  borderLight: 'rgba(255,255,255,0.12)',
+  borderLuminous: 'rgba(255,255,255,0.10)',
+  borderGlass: 'rgba(255,255,255,0.06)',
 
   // — Metallic silver-blue palette — extracted from GANZA icon — //
   silver: '#CBD8E6',
@@ -37,16 +36,16 @@ export const COLORS = {
   iceBlue: '#DCEBFF',
 
   // — Primary accent — GANZA blue (exact icon blue) — //
-  primary: '#2B7FFF',
-  primaryLight: '#60A5FA',
-  primaryMid: '#3B82F6',
-  primaryDark: '#1D4EA3',
-  primaryDeep: '#14366F',
-  accent: '#38BDF8',
-  accentLight: '#7DD3FC',
-  cyan: '#22D3EE',
-  luminous: '#EAF6FF',
-  luminousBlue: '#B8D4FF',
+  primary: '#F5F7FA',
+  primaryLight: '#E5E9EF',
+  primaryMid: '#D7DEE8',
+  primaryDark: '#A7B3C2',
+  primaryDeep: '#1F2A37',
+  accent: '#1F2A37',
+  accentLight: '#75879A',
+  cyan: '#C7D2E0',
+  luminous: '#FFFFFF',
+  luminousBlue: '#DCE5F0',
 
   // — Semantic — cool premium tones — //
   success: '#10B981',
@@ -60,46 +59,46 @@ export const COLORS = {
   infoSoft: 'rgba(56,189,248,0.10)',
 
   // — Text — high contrast on dark glass — //
-  text: '#F1F6FF',
-  textPrimary: '#F1F6FF',
-  textSecondary: '#8FA2BB',
-  textMuted: '#5E728C',
-  textFaint: '#3E526B',
-  cream: '#F1F6FF',
-  creamLight: '#EAF2FD',
+  text: '#F5F7FA',
+  textPrimary: '#F5F7FA',
+  textSecondary: '#B9C3CF',
+  textMuted: '#7D8795',
+  textFaint: '#5D6775',
+  cream: '#F5F7FA',
+  creamLight: '#E6EBF2',
 
   // — Legacy compatibility (mapped to premium palette) — //
-  gold: '#3B82F6',
-  goldDark: '#2563EB',
-  woodDark: '#0A1930',
-  woodMedium: '#0F2447',
-  woodLight: '#162A4F',
-  secondary: '#38BDF8',
-  secondaryLight: '#7DD3FC',
-  primaryDarkLegacy: '#1D4EA3',
+  gold: '#E5E9EF',
+  goldDark: '#C4CED9',
+  woodDark: '#0C1118',
+  woodMedium: '#151D29',
+  woodLight: '#1F2A37',
+  secondary: '#DCE5F0',
+  secondaryLight: '#F0F4F8',
+  primaryDarkLegacy: '#1F2A37',
 } as const;
 
 // — Gradients — use with react-native-linear-gradient — //
 export const GRADIENTS = {
   // Background: deep navy with ambient blue glow
-  background: ['#040A1B', '#0A1930', '#0D2452'] as const,
-  backgroundAmbient: ['#050D22', '#0A1F3D', '#102A52'] as const,
+  background: ['#05070B', '#0D1117', '#171F2A'] as const,
+  backgroundAmbient: ['#0D1117', '#171F2A', '#1F2A37'] as const,
   // Metallic silver gradient extracted from GANZA icon
   metallicSilver: ['#F3F8FF', '#D8E6F5', '#A9BFD3', '#CBD8E6', '#EAF2FD'] as const,
   metallicSilverSubtle: ['#EAF2FD', '#CBD8E6', '#8EA0B5'] as const,
   // Blue steel gradient (icon highlight)
-  blueSteel: ['#60A5FA', '#3B82F6', '#1E40AF'] as const,
-  blueSteelSoft: ['#93C5FD', '#60A5FA', '#3B82F6'] as const,
+  blueSteel: ['#EFF3F8', '#D5DDE7', '#A9B5C2'] as const,
+  blueSteelSoft: ['#F8FAFC', '#E2E8F0', '#B5C2CF'] as const,
   // Primary CTA gradient
-  primary: ['#60A5FA', '#3B82F6', '#2563EB'] as const,
-  primarySoft: ['#7DD3FC', '#38BDF8', '#3B82F6'] as const,
+  primary: ['#F5F7FA', '#EAF0F6', '#D6DFEA'] as const,
+  primarySoft: ['#F8FAFC', '#E2E8F0', '#C3CEDA'] as const,
   // Glass sheen overlay
   glassSheen: ['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.04)', 'rgba(255,255,255,0.00)'] as const,
   // Card luminous edge
   luminousEdge: ['rgba(180,210,255,0.18)', 'rgba(255,255,255,0.06)'] as const,
   // Ambient glow (for background orbs)
-  ambientBlue: ['rgba(59,130,246,0.25)', 'rgba(59,130,246,0.00)'] as const,
-  ambientCyan: ['rgba(56,189,248,0.18)', 'rgba(56,189,248,0.00)'] as const,
+  ambientBlue: ['rgba(255,255,255,0.10)', 'rgba(255,255,255,0.00)'] as const,
+  ambientCyan: ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.00)'] as const,
 } as const;
 
 export const SPACING = {
