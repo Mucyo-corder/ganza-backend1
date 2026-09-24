@@ -21,7 +21,7 @@ export interface PricingResult {
  */
 export function calculatePrice(
   config: PriceConfig,
-  metrics: { imbaho: number; totalLengthM: number; totalAreaM2: number; totalVolumeM3: number }
+  metrics: { pieces: number; totalLengthM: number; totalAreaM2: number; totalVolumeM3: number }
 ): PricingResult {
   let total = 0;
   let formula = '';
