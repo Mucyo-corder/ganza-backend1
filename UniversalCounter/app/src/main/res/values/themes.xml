@@ -1,0 +1,20 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.UniversalCounter" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#1F5BFF</item>
+        <item name="colorPrimaryVariant">#1547C9</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#0F172A</item>
+        <item name="colorSecondaryVariant">#111827</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="android:statusBarColor">#0F172A</item>
+        <item name="android:navigationBarColor">#0F172A</item>
+        <item name="android:windowBackground">#F8FAFC</item>
+        <item name="materialButtonStyle">@style/Widget.UniversalCounter.Button</item>
+    </style>
+
+    <style name="Widget.UniversalCounter.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:textAllCaps">false</item>
+        <item name="cornerRadius">14dp</item>
+        <item name="backgroundTint">@color/uc_primary</item>
+    </style>
+</resources>

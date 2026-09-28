@@ -421,3 +421,38 @@ export interface AuditLog {
   timestamp: string;
   ipAddress?: string;
 }
+
+export type MarketPriceSourceType = 'supplier' | 'retailer' | 'marketplace' | 'user_confirmed' | 'official' | 'other';
+
+export interface MarketPriceSource {
+  name: string;
+  type: MarketPriceSourceType;
+  url?: string;
+  phone?: string;
+  location?: string;
+}
+
+export interface MarketPrice {
+  id: string;
+  businessId?: string;
+  woodType: string;
+  species?: WoodSpecies;
+  productName: string;
+  unit: MeasurementUnit;
+  dimensionUnit?: 'cm' | 'mm' | 'm';
+  dimensions?: {
+    length?: number;
+    width?: number;
+    thickness?: number;
+  };
+  priceMin: number;
+  priceMax: number;
+  currency: string;
+  source: MarketPriceSource;
+  verified: boolean;
+  confidence: number;
+  checkedAt: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}

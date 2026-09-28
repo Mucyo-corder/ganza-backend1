@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Camera, AlertTriangle, CheckCircle2, RotateCcw, Upload, Rurerure } from 'lucide-react';
+import { Camera, AlertTriangle, CheckCircle2, RotateCcw, Upload } from 'lucide-react';
 import { useData } from '../context/DataContext.tsx';
 import { useToast } from '../context/ToastContext.tsx';
 import { Button } from '../components/ui/Button.tsx';
@@ -146,7 +146,7 @@ export const CameraScreen: React.FC = () => {
 
           {needsReference && qualityOk && (
             <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 flex gap-2 text-amber-900 dark:text-amber-200 text-sm">
-              <Rurerure className="w-5 h-5 text-amber-600 shrink-0" />
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
               <div>
                 <div className="font-bold">Ibipimo byagereranijwe — nta rurerure ibonetse.</div>
                 <div className="text-xs opacity-80">Shyira ruler cyangwa A4 hafi y'imbaho kugira ngo ibipimo bibe exact.</div>

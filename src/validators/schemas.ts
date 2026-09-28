@@ -181,6 +181,46 @@ export const cameraEventSchema = z.object({
   snapshotUrl: z.string().url().optional(),
 });
 
+export const marketPriceSearchSchema = z.object({
+  woodType: z.string().min(1, 'Ubwoko bw’imbaho burakenewe.'),
+  species: z.string().optional(),
+  productName: z.string().min(1, 'Izina ry’igicuruzwa rirakenewe.'),
+  unit: z.enum(['piece', 'board', 'plank', 'sheet', 'cubic_meter', 'square_meter', 'meter', 'kg']).default('piece'),
+  dimensionUnit: z.enum(['cm', 'mm', 'm']).optional(),
+  dimensions: z.object({
+    length: z.number().positive().optional(),
+    width: z.number().positive().optional(),
+    thickness: z.number().positive().optional(),
+  }).optional(),
+});
+
+export const marketPriceVerifySchema = z.object({
+  woodType: z.string().min(1, 'Ubwoko bw’imbaho burakenewe.'),
+  species: z.string().optional(),
+  productName: z.string().min(1, 'Izina ry’igicuruzwa rirakenewe.'),
+  unit: z.enum(['piece', 'board', 'plank', 'sheet', 'cubic_meter', 'square_meter', 'meter', 'kg']).default('piece'),
+  dimensionUnit: z.enum(['cm', 'mm', 'm']).optional(),
+  dimensions: z.object({
+    length: z.number().positive().optional(),
+    width: z.number().positive().optional(),
+    thickness: z.number().positive().optional(),
+  }).optional(),
+  priceMin: z.number().nonnegative('Igiciro ntigishobora kuba munsi ya 0.'),
+  priceMax: z.number().nonnegative('Igiciro ntigishobora kuba munsi ya 0.'),
+  currency: z.string().default('RWF'),
+  source: z.object({
+    name: z.string().min(1, 'Izina ry’isoko rirakenewe.'),
+    type: z.enum(['supplier', 'retailer', 'marketplace', 'user_confirmed', 'official', 'other']),
+    url: z.string().url().optional(),
+    phone: z.string().optional(),
+    location: z.string().optional(),
+  }),
+  notes: z.string().optional(),
+}).refine(
+  (data) => data.priceMax >= data.priceMin,
+  { message: 'priceMax igomba kuba ingana cyangwa irenze priceMin.', path: ['priceMax'] }
+);
+
 // Backward-compatible schema aliases for route bindings
 export const createBusinessSchema = businessSchema;
 export const createInventorySchema = inventoryItemSchema;

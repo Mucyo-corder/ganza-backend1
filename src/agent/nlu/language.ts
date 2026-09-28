@@ -196,7 +196,7 @@ export function detectSpeechLanguage(hypotheses: string[]): LanguageDetection {
   if (list.length === 0) return detectLanguage('');
   const combined = detectLanguage(list.join(' '));
   const best = list
-    .map(detectLanguage)
+    .map(text => detectLanguage(text))
     .reduce((a, b) => (b.confidence > a.confidence ? b : a));
   return combined.confidence >= best.confidence ? combined : best;
 }

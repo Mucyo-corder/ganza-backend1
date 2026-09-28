@@ -36,6 +36,7 @@ import type {
   ConversationContext,
   ActionDescriptor,
   LanguageDetection,
+  NluLanguage,
   NormalizedUtterance,
   IntentId,
   UnderstandOptions,

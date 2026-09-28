@@ -157,7 +157,7 @@ export type EntityType =
 
 export interface Entity {
   type: EntityType;
-  value: string | number | boolean | Record<string, unknown>;
+  value: string | number | boolean | Record<string, unknown> | null;
   raw: string;
   confidence: number;
   /** Where the value came from — utterance text or the running context. */
