@@ -130,19 +130,24 @@ class CameraActivity : AppCompatActivity() {
             val mat = Mat()
             Utils.bitmapToMat(bitmap, mat)
             val result = CountingEngine().count(mat, CountOptions.DEFAULT)
-            val qualityText = when (result.quality.tier) {
-                QualityTier.HIGH -> "HIGH"
-                QualityTier.MEDIUM -> "MEDIUM"
-                QualityTier.LOW -> "LOW"
-                QualityTier.UNRELIABLE -> "UNRELIABLE"
-            }
-            val quantityText = if (result.isReliable) result.count.toString() else "UNABLE TO COUNT RELIABLY"
+            val analysis = ProductAnalysisResult.fromCountingResult(result)
             val intent = Intent(this, ResultActivity::class.java).apply {
                 putExtra("photo_path", photoFile.absolutePath)
-                putExtra("count", quantityText)
-                putExtra("quality", qualityText)
-                putExtra("status", if (result.isReliable) "VERIFIED" else "RETAKE PHOTO")
-                putExtra("pipeline_trace", result.pipelineTrace)
+                putExtra("count", analysis.quantity)
+                putExtra("quality", analysis.quality)
+                putExtra("status", if (analysis.requiresConfirmation) "PENDING_VERIFICATION" else "VERIFIED")
+                putExtra("product_name", analysis.productName)
+                putExtra("category", analysis.category)
+                putExtra("detection_summary", analysis.detectionSummary)
+                putExtra("requires_confirmation", analysis.requiresConfirmation)
+                putExtra("quantity_status", analysis.quantityStatus)
+                putExtra("confidence", analysis.confidence)
+                putExtra("dimensions", analysis.dimensions)
+                putExtra("user_action_hint", analysis.userActionHint)
+                putExtra("market_status", "OFFLINE")
+                putExtra("market_message", "Current online market price cannot be checked. Enter your own unit price or retake the photo for a better match.")
+                putExtra("market_currency", "RWF")
+                putStringArrayListExtra("characteristics", ArrayList(analysis.characteristics))
                 putExtra("reason", result.quality.reasons.joinToString(" | ") { it.userMessage })
             }
             startActivity(intent)

@@ -14,7 +14,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="COUNT RESULT"
+            android:text="UNIVERSAL PRODUCT SCANNER"
             android:textStyle="bold"
             android:textSize="22sp"
             android:textColor="#0F172A" />
@@ -71,19 +71,51 @@
             android:inputType="textCapWords" />
 
         <EditText
+            android:id="@+id/quantityField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="Quantity"
+            android:inputType="number" />
+
+        <EditText
+            android:id="@+id/dimensionsField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="Dimensions / measurement status"
+            android:inputType="textCapSentences" />
+
+        <EditText
+            android:id="@+id/conditionField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="Condition (new, used, damaged, unknown)"
+            android:inputType="textCapWords" />
+
+        <EditText
             android:id="@+id/unitPriceField"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:hint="Unit price"
+            android:hint="Unit price (RWF)"
             android:inputType="numberDecimal" />
+
+        <TextView
+            android:id="@+id/priceStatusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="#475569"
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/totalValueText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Total value\n0.00"
+            android:text="Estimated market value\n0.00"
             android:textColor="#0F172A"
             android:textSize="18sp"
             android:textStyle="bold" />
