@@ -14,17 +14,5 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.takePhotoButton).setOnClickListener {
             startActivity(Intent(this, CameraActivity::class.java))
         }
-
-        findViewById<Button>(R.id.countStockButton).setOnClickListener {
-            startActivity(Intent(this, StockActivity::class.java))
-        }
-
-        findViewById<Button>(R.id.valueButton).setOnClickListener {
-            startActivity(Intent(this, ValueActivity::class.java))
-        }
-
-        findViewById<Button>(R.id.historyButton).setOnClickListener {
-            startActivity(Intent(this, HistoryActivity::class.java))
-        }
     }
 }

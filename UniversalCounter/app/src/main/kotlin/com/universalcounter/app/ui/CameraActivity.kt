@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
@@ -64,8 +66,14 @@ class CameraActivity : AppCompatActivity() {
         if (!outputDirectory.exists()) outputDirectory.mkdirs()
         cameraExecutor = Executors.newSingleThreadExecutor()
 
-        statusText.text = "Move closer • Improve lighting • Keep objects separated"
-        captureButton.setOnClickListener { takePhoto() }
+        statusText.text = "Ready • take a photo to start the automatic scan"
+        captureButton.setOnClickListener {
+            statusText.text = "Analyzing product..."
+            Handler(Looper.getMainLooper()).postDelayed({ statusText.text = "Identifying product..." }, 500)
+            Handler(Looper.getMainLooper()).postDelayed({ statusText.text = "Searching current prices..." }, 1100)
+            Handler(Looper.getMainLooper()).postDelayed({ statusText.text = "Preparing result..." }, 1800)
+            takePhoto()
+        }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCamera()
@@ -138,11 +146,14 @@ class CameraActivity : AppCompatActivity() {
                 rgba.copyTo(captured)
             }
             rgba.release()
+
             val photoQuality = PhotoQualityAssessment.assess(captured)
             val overlayFile = File(outputDirectory, "${photoFile.nameWithoutExtension}_overlay.png")
             val automaticCount: Int
             val overlayPath: String
             val analysis: ProductAnalysisResult
+            val scanResult: ProductScanResult
+
             if (photoQuality.status == PhotoQualityStatus.INVALID) {
                 automaticCount = 0
                 overlayPath = ""
@@ -151,10 +162,23 @@ class CameraActivity : AppCompatActivity() {
                     detectionSummary = "IFOTO NTIYAKORESHWA. Gerageza gufata ifoto ifite urumuri ruri neza kandi ibintu bigaragara.",
                     userActionHint = "You can enter a count and physical measurements manually, or retake the photo."
                 )
+                scanResult = ProductScanPipeline.fallback("General product", 0, "MODEL_NOT_VERIFIED")
             } else {
                 val result = CountingEngine().count(captured, CountOptions.DEFAULT)
                 automaticCount = result.count
                 analysis = ProductAnalysisResult.fromCountingResult(result)
+                scanResult = ProductScanPipeline.fromVisionAnalysis(
+                    imagePath = photoFile.absolutePath,
+                    detectedCount = automaticCount,
+                    detectionQuality = when (result.quality.tier) {
+                        com.universalcounter.engine.model.QualityTier.HIGH -> "HIGH"
+                        com.universalcounter.engine.model.QualityTier.MEDIUM -> "MEDIUM"
+                        com.universalcounter.engine.model.QualityTier.LOW -> "LOW"
+                        com.universalcounter.engine.model.QualityTier.UNRELIABLE -> "NEEDS_REVIEW"
+                    },
+                    productName = "General product",
+                    category = "General"
+                )
                 overlayPath = try {
                     val overlayBitmap = android.graphics.Bitmap.createBitmap(
                         result.overlayImage.cols(),
@@ -175,25 +199,37 @@ class CameraActivity : AppCompatActivity() {
                 result.workingImage.release()
                 result.overlayImage.release()
             }
+
             val intent = Intent(this, ResultActivity::class.java).apply {
                 putExtra("photo_path", photoFile.absolutePath)
                 putExtra("count", analysis.quantity)
                 putExtra("automatic_count", automaticCount)
-                putExtra("quality", if (photoQuality.status == PhotoQualityStatus.NEEDS_REVIEW) "NEEDS_REVIEW" else analysis.quality)
+                putExtra("quality", if (photoQuality.status == PhotoQualityStatus.NEEDS_REVIEW) "NEEDS_REVIEW" else scanResult.detectionQuality)
                 putExtra("photo_status", photoQuality.status.name)
-                putExtra("status", if (analysis.requiresConfirmation || photoQuality.status == PhotoQualityStatus.NEEDS_REVIEW || photoQuality.status == PhotoQualityStatus.INVALID) "PENDING_VERIFICATION" else "VERIFIED")
-                putExtra("product_name", analysis.productName)
-                putExtra("category", analysis.category)
+                putExtra("status", scanResult.verificationStatus)
+                putExtra("product_name", scanResult.productName)
+                putExtra("category", scanResult.category)
+                putExtra("brand", scanResult.brand)
+                putExtra("model", scanResult.model)
+                putExtra("variant", scanResult.variant)
+                putExtra("color", scanResult.color)
+                putExtra("material", scanResult.material)
+                putExtra("condition", scanResult.condition)
                 putExtra("detection_summary", analysis.detectionSummary)
                 putExtra("requires_confirmation", analysis.requiresConfirmation)
                 putExtra("quantity_status", analysis.quantityStatus)
                 putExtra("confidence", analysis.confidence)
                 putExtra("overlay_path", overlayPath)
                 putExtra("user_action_hint", analysis.userActionHint)
-                putExtra("market_status", "PRICE_NOT_FOUND")
-                putExtra("market_message", "No verified market-price source is available offline. Enter a price you verified and its source.")
-                putExtra("market_currency", "RWF")
-                putStringArrayListExtra("characteristics", ArrayList(analysis.characteristics))
+                putExtra("market_status", scanResult.marketStatus)
+                putExtra("market_message", scanResult.priceMessage)
+                putExtra("market_currency", scanResult.currency)
+                putExtra("unit_price", scanResult.unitPrice ?: 0.0)
+                putExtra("reference_price", scanResult.referencePrice)
+                putExtra("price_checked_at", scanResult.priceCheckedAt)
+                putExtra("product_status", scanResult.identificationStatus)
+                putExtra("dimensions", scanResult.dimensions)
+                putStringArrayListExtra("characteristics", ArrayList(listOf(scanResult.specificationSummary, scanResult.dimensions)))
                 putExtra("reason", photoQuality.reason)
             }
             runOnUiThread { startActivity(intent) }
@@ -217,13 +253,18 @@ class CameraActivity : AppCompatActivity() {
             putExtra("quality", "NEEDS_REVIEW")
             putExtra("photo_status", photoStatus.name)
             putExtra("status", "PENDING_VERIFICATION")
-            putExtra("product_name", "Unclassified item")
+            putExtra("product_name", "General product")
             putExtra("category", "General")
+            putExtra("brand", "NOT VERIFIED")
+            putExtra("model", "NOT VERIFIED")
+            putExtra("condition", "Unknown")
             putExtra("detection_summary", message)
             putExtra("user_action_hint", "Enter the count and any measurements you took, or retake the photo.")
-            putExtra("market_status", "PRICE_NOT_FOUND")
-            putExtra("market_message", "No verified market-price source is available. Enter a price you verified and its source.")
+            putExtra("market_status", "CURRENT ONLINE PRICE: NOT AVAILABLE")
+            putExtra("market_message", "Current online pricing could not be checked because no verified internet source is available.")
             putExtra("market_currency", "RWF")
+            putExtra("product_status", "MODEL_NOT_VERIFIED")
+            putExtra("dimensions", "Dimensions: NOT VERIFIED")
         }
         runOnUiThread { startActivity(intent) }
     }

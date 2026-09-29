@@ -3,6 +3,7 @@ package com.universalcounter.app
 import com.universalcounter.app.ui.ProductAnalysisResult
 import com.universalcounter.app.ui.MarketPriceStatus
 import com.universalcounter.app.ui.PhotoQualityStatus
+import com.universalcounter.app.ui.ProductScanPipeline
 import com.universalcounter.app.ui.resolveVerificationStatus
 import com.universalcounter.app.ui.statusAfterAnalysisFailure
 import org.junit.Assert.assertEquals
@@ -47,5 +48,24 @@ class ProductAnalysisResultTest {
     fun `analysis failure does not invalidate a decoded photo`() {
         assertEquals(PhotoQualityStatus.NEEDS_REVIEW, statusAfterAnalysisFailure(imageDecoded = true))
         assertEquals(PhotoQualityStatus.INVALID, statusAfterAnalysisFailure(imageDecoded = false))
+    }
+
+    @Test
+    fun `automatic pipeline stays honest when the internet is unavailable`() {
+        val scan = ProductScanPipeline.fallback("General product", 2, "PARTIALLY_VERIFIED")
+
+        assertEquals("General product", scan.productName)
+        assertEquals("PARTIALLY_VERIFIED", scan.identificationStatus)
+        assertEquals("CURRENT ONLINE PRICE: NOT AVAILABLE", scan.marketStatus)
+        assertTrue(scan.priceMessage.contains("not available", ignoreCase = true))
+    }
+
+    @Test
+    fun `automatic pipeline avoids fake model claims`() {
+        val scan = ProductScanPipeline.fallback("Leather handbag", 1, "MODEL_NOT_VERIFIED")
+
+        assertEquals("MODEL_NOT_VERIFIED", scan.identificationStatus)
+        assertEquals("NOT VERIFIED", scan.model)
+        assertEquals("NOT VERIFIED", scan.brand)
     }
 }

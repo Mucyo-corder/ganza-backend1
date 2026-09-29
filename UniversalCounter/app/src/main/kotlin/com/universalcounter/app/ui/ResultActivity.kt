@@ -52,12 +52,15 @@ class ResultActivity : AppCompatActivity() {
         val rawCount = intent.getIntExtra("count", 0)
         val quality = intent.getStringExtra("quality") ?: "LOW"
         val status = intent.getStringExtra("status") ?: "PENDING_VERIFICATION"
-        val productName = intent.getStringExtra("product_name") ?: "Unclassified item"
+        val productName = intent.getStringExtra("product_name") ?: "General product"
         val category = intent.getStringExtra("category") ?: "General"
+        val brand = intent.getStringExtra("brand") ?: "NOT VERIFIED"
+        val model = intent.getStringExtra("model") ?: "NOT VERIFIED"
+        val condition = intent.getStringExtra("condition") ?: "Unknown"
         val detectionSummary = intent.getStringExtra("detection_summary") ?: "I cannot determine this reliably from this photo."
         val userActionHint = intent.getStringExtra("user_action_hint") ?: "Please retake the photo with a clearer, single product group in frame."
         val reason = intent.getStringExtra("reason") ?: ""
-        val marketStatus = intent.getStringExtra("market_status") ?: "OFFLINE"
+        val marketStatus = intent.getStringExtra("market_status") ?: "CURRENT ONLINE PRICE: NOT AVAILABLE"
         val marketMessage = intent.getStringExtra("market_message") ?: "Current online market price cannot be checked."
         val marketCurrency = intent.getStringExtra("market_currency") ?: "RWF"
 
@@ -77,14 +80,20 @@ class ResultActivity : AppCompatActivity() {
 
         productField.setText(productName)
         categoryField.setText(category.takeUnless { it == "General" }.orEmpty())
+        brandField.setText(brand)
+        modelField.setText(model)
         quantityField.setText(quantityValue.toString())
-        conditionField.setText("Unknown")
+        conditionField.setText(condition)
         dimensionUnitSpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
             listOf("mm", "cm", "m")
         )
-        val priceLabel = if (marketStatus == "OFFLINE" || marketStatus == "PRICE_NOT_FOUND") "PRICE_NOT_VERIFIED" else marketStatus
+        val priceLabel = when {
+            marketStatus.contains("NOT AVAILABLE", ignoreCase = true) -> "CURRENT ONLINE PRICE: NOT AVAILABLE"
+            marketStatus.contains("PRICE_NOT_FOUND", ignoreCase = true) -> "PRICE_NOT_VERIFIED"
+            else -> marketStatus
+        }
         priceStatusText.text = "PRICE STATUS: $priceLabel\n$marketMessage"
 
         marketSearchButton.setOnClickListener {
@@ -101,7 +110,7 @@ class ResultActivity : AppCompatActivity() {
             val total = updatedQuantity * unitPrice
             val fmt = NumberFormat.getCurrencyInstance(Locale.US)
             fmt.currency = java.util.Currency.getInstance(marketCurrency)
-            val valueLabel = if (marketStatus == "PRICE_FOUND") "Verified Value" else "Estimated Market Value"
+            val valueLabel = if (marketStatus.contains("NOT AVAILABLE", ignoreCase = true) || marketStatus.contains("PRICE_NOT_FOUND", ignoreCase = true)) "Estimated Market Value" else "Verified Value"
             totalsText.text = "$valueLabel\n${fmt.format(total)}"
         }
 
@@ -111,7 +120,7 @@ class ResultActivity : AppCompatActivity() {
             totalUpdater()
         }
 
-        unitPriceField.setText("0")
+        unitPriceField.setText(intent.getDoubleExtra("unit_price", 0.0).let { if (it <= 0.0) "0" else it.toString() })
         val valueWatcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
