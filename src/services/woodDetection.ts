@@ -26,6 +26,7 @@ export interface WoodDetectionInput {
 }
 
 export interface ImageQualityAssessment {
+  status: 'GOOD' | 'ACCEPTABLE' | 'NEEDS_REVIEW' | 'INVALID';
   isReliable: boolean;
   score: number;
   confidence: number;
@@ -103,56 +104,87 @@ const clamp = (value: number, min: number, max: number): number => Math.min(Math
 
 export function assessImageQuality(image: WoodDetectionInput): ImageQualityAssessment {
   const issues: string[] = [];
-  const size = image.size ?? 0;
-  const width = image.width ?? 0;
-  const height = image.height ?? 0;
-  const blurScore = image.blurScore ?? 0;
-  const darknessScore = image.darknessScore ?? 0;
-  const glareScore = image.glareScore ?? 0;
+  const suppliedMetrics = image.width !== undefined || image.height !== undefined || image.blurScore !== undefined ||
+    image.darknessScore !== undefined || image.glareScore !== undefined;
+  const blurScore = image.blurScore;
+  const darknessScore = image.darknessScore;
+  const glareScore = image.glareScore;
   const occluded = Boolean(image.occluded);
   const overlapping = Boolean(image.overlapping);
+  let status: ImageQualityAssessment['status'] = 'GOOD';
 
-  if (!image.mimeType || !image.mimeType.startsWith('image/')) {
-    issues.push('Ifoto ntibashije kuboneka neza. Ongere ufate ifoto.');
+  if (image.mimeType && !image.mimeType.startsWith('image/')) {
+    status = 'INVALID';
+    issues.push('The selected file is not an image.');
   }
 
-  if (size < 150000) {
-    issues.push('IFOTO NTISOBANUTSE NEZA. ONGERE UFATE IFOTO.');
+  if (image.size !== undefined && image.size <= 0) {
+    status = 'INVALID';
+    issues.push('The selected image is empty.');
+  } else if (image.size !== undefined && image.size < 150000) {
+    status = 'NEEDS_REVIEW';
+    issues.push('File size is limited; image content still requires review.');
   }
 
-  if (width < 640 || height < 480) {
-    issues.push('Ifoto ntibahagije. Ongere ufate ifoto ya resolution irenze 640x480.');
+  if ((image.width !== undefined && image.width < 64) || (image.height !== undefined && image.height < 64)) {
+    status = 'INVALID';
+    issues.push('The image resolution is too small to inspect.');
   }
 
-  if (blurScore > 0.65) {
-    issues.push('Ifoto yirabanye. Ongere ufate ifoto yiboneye.');
+  if (status === 'GOOD' && ((image.width !== undefined && image.width < 640) || (image.height !== undefined && image.height < 480))) {
+    status = 'ACCEPTABLE';
+    issues.push('Image resolution is limited; review the result.');
   }
 
-  if (darknessScore > 0.7) {
-    issues.push('Ifoto irijimye. Ongere ufate ifoto ihumye neza.');
+  if (blurScore !== undefined && blurScore > 0.98 && darknessScore !== undefined && darknessScore > 0.98) {
+    status = 'INVALID';
+    issues.push('The image is extremely blurred and has no visible detail.');
+  } else if (blurScore !== undefined && blurScore > 0.65) {
+    status = status === 'INVALID' ? status : 'NEEDS_REVIEW';
+    issues.push('Blur may reduce counting accuracy.');
   }
 
-  if (glareScore > 0.55) {
-    issues.push('Harimo glare. Ongere ufate ifoto idafite urumuri rushyushya.');
+  if (darknessScore !== undefined && darknessScore > 0.7) {
+    status = status === 'INVALID' ? status : 'NEEDS_REVIEW';
+    issues.push('Low lighting may reduce counting accuracy.');
+  }
+
+  if (glareScore !== undefined && glareScore > 0.55) {
+    status = status === 'INVALID' ? status : 'NEEDS_REVIEW';
+    issues.push('Glare may reduce counting accuracy.');
   }
 
   if (occluded) {
-    issues.push('Hari ibice byahagaritswe. Ongere ufate ifoto yisukuye.');
+    status = status === 'INVALID' ? status : 'NEEDS_REVIEW';
+    issues.push('Some objects may be obscured; review the count.');
   }
 
   if (overlapping) {
-    issues.push('Imbaho ziri guhura. Ongere ufate ifoto aho imbaho zigorana bike.');
+    status = status === 'INVALID' ? status : 'NEEDS_REVIEW';
+    issues.push('Touching objects may require manual count correction.');
   }
 
-  const score = clamp(100 - issues.length * 18 - (blurScore * 20) - (darknessScore * 20) - (glareScore * 15), 0, 100);
-  const isReliable = issues.length === 0;
+  if (!suppliedMetrics && status === 'GOOD') {
+    status = 'NEEDS_REVIEW';
+    issues.push('Photo quality metrics are unavailable; review the result.');
+  }
+
+  const score = clamp(
+    100 - issues.length * 18 - ((blurScore ?? 0) * 20) - ((darknessScore ?? 0) * 20) - ((glareScore ?? 0) * 15),
+    0,
+    100
+  );
+  const isReliable = status === 'GOOD' || status === 'ACCEPTABLE';
 
   return {
+    status,
     isReliable,
     score,
     confidence: Number((score / 100).toFixed(3)),
     issues,
-    suggestedAction: isReliable ? 'Continue with scan and verification.' : 'IFOTO NTISOBANUTSE NEZA. ONGERE UFATE IFOTO.',
+    suggestedAction: status === 'INVALID'
+      ? 'This file cannot be analyzed. Retake the photo or enter the count manually.'
+      : 'Automatic counting is unavailable here. Enter or correct the count and measurements manually.',
   };
 }
 
@@ -281,40 +313,13 @@ export class WoodDetectionService implements WoodDetectionProvider {
     const mimeType = image.mimeType || 'image/png';
     const quality = assessImageQuality(image);
 
-    if (!mimeType.startsWith('image/')) {
-      throw new Error('image input is required');
-    }
-
-    if (!quality.isReliable) {
-      return {
-        count: 0,
-        confidence: quality.confidence,
-        boards: [],
-        quality,
-        status: 'requires_confirmation',
-        message: quality.suggestedAction,
-      };
-    }
-
-    const estimatedCount = Math.max(1, Math.min(100, Math.round((image.size ?? 0) / 2000)));
-    const boards = Array.from({ length: estimatedCount }, (_, index) => ({
-      id: `board-${Date.now()}-${index}`,
-      confidence: quality.confidence * 100,
-      boundingBox: {
-        x: 10 + index * 9,
-        y: 20 + index * 6,
-        width: 60 + index * 2,
-        height: 25 + index * 2,
-      },
-    }));
-
     return {
-      count: estimatedCount,
+      count: 0,
       confidence: quality.confidence,
-      boards,
+      boards: [],
       quality,
-      status: 'ready',
-      message: 'Imbaho zagaragaye. Reba ibipimo mbere yo kubika.',
+      status: 'requires_confirmation',
+      message: quality.suggestedAction,
     };
   }
 }

@@ -12,8 +12,8 @@ import {AmbientBackground} from '../../components/premium/AmbientBackground';
 import {GlassCard} from '../../components/premium/GlassCard';
 import {PremiumButton} from '../../components/premium/PremiumButton';
 import {StatusPill} from '../../components/premium/StatusPill';
-import {calculatePrice, priceLabel, DEFAULT_PRICE_CONFIG, PriceConfig} from '../../utils/pricing';
-import {volumeOnePieceM3, formatDimensions, formatVolume, formatArea, MeasurementMethod, MEASUREMENT_LABEL, validateDimensions} from '../../utils/woodMath';
+import {calculatePrice, priceLabel, PriceConfig} from '../../utils/pricing';
+import {formatVolume, formatArea, MeasurementMethod, validateDimensions} from '../../utils/woodMath';
 
 interface Props {
   route: {params: {result: BoardDetectionResult; imageUri: string; qualityWarning?: string | null}};
@@ -28,18 +28,17 @@ export default function ScanResultScreen({route, navigation}: Props) {
 
   // User correction state
   const [quantity, setQuantity] = useState<number>(result.count);
-  const [woodType, setWoodType] = useState<string>('Pine');
+  const [woodType, setWoodType] = useState<string>('');
   const [lengthM, setLengthM] = useState<string>('');
   const [widthM, setWidthM] = useState<string>('');
   const [thicknessM, setThicknessM] = useState<string>('');
-  const [confidence, setConfidence] = useState<number>(result.confidence);
+  const [confidence] = useState<number>(result.confidence);
   const [measurementMethod, setMeasurementMethod] = useState<MeasurementMethod>('estimated');
-  const [hasReference, setHasReference] = useState(false);
-  const [priceBasis, setPriceBasis] = useState<PriceConfig['basis']>(DEFAULT_PRICE_CONFIG.basis);
-  const [pricePerUnit, setPricePerUnit] = useState<string>(String(DEFAULT_PRICE_CONFIG.valuePerUnit));
+  const [priceBasis, setPriceBasis] = useState<PriceConfig['basis']>('piece');
+  const [pricePerUnit, setPricePerUnit] = useState<string>('');
   const [saving, setSaving] = useState(false);
 
-  const isUserCorrected = quantity !== result.count || measurementMethod !== 'estimated';
+  const isUserCorrected = quantity !== result.count;
   const numericLength = parseFloat(lengthM) || 0;
   const numericWidth = parseFloat(widthM) || 0;
   const numericThickness = parseFloat(thicknessM) || 0;
@@ -53,15 +52,16 @@ export default function ScanResultScreen({route, navigation}: Props) {
   const totalLen = dimsValid ? numericLength * quantity : 0;
 
   const pricingResult = useMemo(() => {
+    if (numericPrice <= 0) {
+      return {totalRWF: 0, basis: priceBasis, unitPrice: 0, quantityLabel: '', formula: 'Shyiramo igiciro nyacyo kugira ngo tubare agaciro.'};
+    }
     return calculatePrice(
       {basis: priceBasis, valuePerUnit: numericPrice},
       {pieces: quantity, totalLengthM: totalLen, totalAreaM2: totalArea, totalVolumeM3: totalVolume}
     );
   }, [priceBasis, numericPrice, quantity, totalLen, totalArea, totalVolume]);
 
-  const estimatedLabel = !hasReference || measurementMethod === 'estimated'
-    ? 'Estimated measurement'
-    : MEASUREMENT_LABEL[measurementMethod];
+  const estimatedLabel = measurementMethod === 'manual' ? 'USER_MEASURED' : 'NOT MEASURED';
 
   const adjustQuantity = (delta: number) => setQuantity(q => Math.max(0, q + delta));
 
@@ -84,7 +84,6 @@ export default function ScanResultScreen({route, navigation}: Props) {
     }
     setSaving(true);
     try {
-      const detectionResult = {...result, count: quantity, confidence, boards: result.boards.slice(0, quantity)};
       const dimensions = {
         length: numericLength,
         width: numericWidth,
@@ -94,9 +93,9 @@ export default function ScanResultScreen({route, navigation}: Props) {
       const inventoryItem: any = {
         id: `inv-${Date.now()}`,
         businessId: user?.businessId || user?.uid || 'default-business',
-        name: `${woodType} (${dimensions.displayStr})`,
-        category: woodType,
-        woodType,
+        name: `${woodType || 'Igiti kitazwi'} (${dimensions.displayStr})`,
+        category: woodType || 'Igiti kitazwi',
+        woodType: woodType || 'Igiti kitazwi',
         quantity,
         unit: 'pieces',
         unitPrice: priceBasis === 'piece' ? Math.round(numericPrice) : Math.round(pricingResult.totalRWF / Math.max(1, quantity)),
@@ -104,12 +103,18 @@ export default function ScanResultScreen({route, navigation}: Props) {
         priceBasis,
         pricePerUnit: Math.round(numericPrice),
         imageUrl: imageUri,
-        detectionResult,
+        detectionResult: result,
+        automaticCount: result.count,
+        manualCount: isUserCorrected ? quantity : null,
+        finalCount: quantity,
+        countSource: isUserCorrected ? 'MANUAL_CORRECTION' : 'COMPUTER_VISION',
         dimensions,
         volumeM3: totalVolume,
         areaM2: totalArea,
         totalLengthM: totalLen,
-        measurementMethod: hasReference ? measurementMethod : 'estimated',
+        measurementMethod,
+        priceSource: 'USER_ENTERED',
+        verificationStatus: result.analysisStatus === 'needs_review' && !isUserCorrected ? 'PENDING_VERIFICATION' : 'VERIFIED',
         confidence,
         source: hasReliableDetection ? 'scan' : 'manual',
         isUserCorrected,
@@ -149,7 +154,7 @@ export default function ScanResultScreen({route, navigation}: Props) {
           </View>
           <LinearGradient colors={['rgba(0,0,0,0.00)', 'rgba(4,10,27,0.72)'] as unknown as string[]} style={styles.imageScrim} />
           <View style={styles.imageLabel}>
-            <Text style={styles.imageLabelText}>Detected {quantity} imbaho {isUserCorrected ? '• Byahinduwe' : `• ${Math.round(confidence * 100)}%`}</Text>
+            <Text style={styles.imageLabelText}>{quantity} imbaho {isUserCorrected ? '• Byahinduwe' : `• ${Math.round(confidence * 100)}%`}</Text>
             <Text style={styles.imageLabelSub}>{estimatedLabel}</Text>
           </View>
         </View>
@@ -165,11 +170,17 @@ export default function ScanResultScreen({route, navigation}: Props) {
         )}
 
         {/* Detected + counting correction */}
-        <GlassCard title="Imbaho zagaragaye" subtitle="Detected • Kosora umubare niba bikenewe" icon="⬢" style={{marginBottom: 12}}>
+        <GlassCard title="Imbaho zagaragaye" subtitle={`Yabonetse byikora: ${result.count} • Kosora umubare niba bikenewe`} icon="⬢" style={{marginBottom: 12}}>
           <View style={styles.countContainer}>
             <TouchableOpacity style={styles.countButton} onPress={() => adjustQuantity(-1)} activeOpacity={0.85}><Text style={styles.countButtonText}>−</Text></TouchableOpacity>
             <View style={styles.countCenter}>
-              <Text style={styles.countNumber}>{quantity}</Text>
+              <TextInput
+                style={styles.countInput}
+                value={String(quantity)}
+                onChangeText={value => setQuantity(Math.max(0, Number.parseInt(value.replace(/[^0-9]/g, ''), 10) || 0))}
+                keyboardType="number-pad"
+                accessibilityLabel="Corrected count"
+              />
               <StatusPill status={isUserCorrected ? 'warning' : confidence > 0.7 ? 'success' : 'warning'} label={isUserCorrected ? 'Byahinduwe' : `${Math.round(confidence * 100)}% confidence`} />
             </View>
             <TouchableOpacity style={styles.countButtonPrimary} onPress={() => adjustQuantity(1)} activeOpacity={0.88}>
@@ -199,40 +210,22 @@ export default function ScanResultScreen({route, navigation}: Props) {
         </GlassCard>
 
         {/* Dimensions — honest labeling */}
-        <GlassCard title="Ibipimo" subtitle={estimatedLabel + ' • Shyira reference kugira ngo bibe exact'} icon="◆" style={{marginBottom: 12}}>
+        <GlassCard title="Ibipimo" subtitle={estimatedLabel} icon="◆" style={{marginBottom: 12}}>
           <View style={styles.dimRow}>
             <View style={styles.dimField}>
               <Text style={styles.dimLabel}>Length (m)</Text>
-              <TextInput style={styles.dimInput} value={lengthM} onChangeText={setLengthM} keyboardType={Platform.OS === 'web' ? 'default' : 'decimal-pad'} placeholder="3.0" placeholderTextColor="#5E728C" />
+              <TextInput style={styles.dimInput} value={lengthM} onChangeText={value => {setLengthM(value); setMeasurementMethod('manual');}} keyboardType={Platform.OS === 'web' ? 'default' : 'decimal-pad'} placeholder="" placeholderTextColor="#5E728C" />
             </View>
             <View style={styles.dimField}>
               <Text style={styles.dimLabel}>Width (m)</Text>
-              <TextInput style={styles.dimInput} value={widthM} onChangeText={setWidthM} keyboardType={Platform.OS === 'web' ? 'default' : 'decimal-pad'} placeholder="0.20" placeholderTextColor="#5E728C" />
+              <TextInput style={styles.dimInput} value={widthM} onChangeText={value => {setWidthM(value); setMeasurementMethod('manual');}} keyboardType={Platform.OS === 'web' ? 'default' : 'decimal-pad'} placeholder="" placeholderTextColor="#5E728C" />
             </View>
             <View style={styles.dimField}>
               <Text style={styles.dimLabel}>Thick. (m)</Text>
-              <TextInput style={styles.dimInput} value={thicknessM} onChangeText={setThicknessM} keyboardType={Platform.OS === 'web' ? 'default' : 'decimal-pad'} placeholder="0.05" placeholderTextColor="#5E728C" />
+              <TextInput style={styles.dimInput} value={thicknessM} onChangeText={value => {setThicknessM(value); setMeasurementMethod('manual');}} keyboardType={Platform.OS === 'web' ? 'default' : 'decimal-pad'} placeholder="" placeholderTextColor="#5E728C" />
             </View>
           </View>
-          <View style={styles.referenceRow}>
-            <TouchableOpacity
-              style={[styles.refChip, hasReference && styles.refChipActive]}
-              onPress={() => { setHasReference(!hasReference); setMeasurementMethod(!hasReference ? 'reference_ruler' : 'estimated'); }}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.refText, hasReference && styles.refTextActive]}>{hasReference ? '✓ Hari rurerure' : '○ Nta rurerure'}</Text>
-            </TouchableOpacity>
-            {hasReference && (
-              <View style={styles.refOptions}>
-                {(['reference_ruler', 'reference_object', 'ar_depth', 'manual'] as MeasurementMethod[]).map(m => (
-                  <TouchableOpacity key={m} style={[styles.refMini, measurementMethod === m && styles.refMiniActive]} onPress={() => setMeasurementMethod(m)} activeOpacity={0.85}>
-                    <Text style={[styles.refMiniText, measurementMethod === m && styles.refMiniTextActive]}>{m === 'reference_ruler' ? 'Rurerure' : m === 'reference_object' ? 'Object' : m === 'ar_depth' ? 'AR' : 'Manual'}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-          {!hasReference && <Text style={styles.estimatedHint}>⚠ Measurement requires a reference — ibipimo biri hejuru ni estimated gusa. Shyira ruler muri foto ikurikira.</Text>}
+          <Text style={styles.estimatedHint}>Ibipimo byinjijwe n'umukoresha: {estimatedLabel}</Text>
           {dimsValid && (
             <View style={styles.calcBox}>
               <Text style={styles.calcLabel}>Volume (one): {formatVolume(oneVolume)}</Text>
@@ -256,21 +249,14 @@ export default function ScanResultScreen({route, navigation}: Props) {
             <TextInput style={styles.priceInput} value={pricePerUnit} onChangeText={v => setPricePerUnit(v.replace(/[^\d,]/g, ''))} placeholder="180,000" keyboardType={Platform.OS === 'web' ? 'default' : 'numeric'} placeholderTextColor="#5E728C" />
             <Text style={styles.priceSuffix}>/ {priceLabel(priceBasis)}</Text>
           </View>
-          <View style={styles.priceChips}>
-            {[5000, 180000, 250000].map(p => (
-              <TouchableOpacity key={p} style={[styles.chip, pricePerUnit === String(p) && styles.chipActive]} onPress={() => setPricePerUnit(String(p))} activeOpacity={0.85}>
-                <Text style={[styles.chipText, pricePerUnit === String(p) && styles.chipTextActive]}>{formatRWF(p)}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
         </GlassCard>
 
         {/* Total — explicit formula */}
         <GlassCard variant="luminous" padding="lg" style={{marginBottom: 12}}>
-          <Text style={styles.totalLabel}>Agaciro kose</Text>
-          <Text style={styles.totalValue}>{formatRWF(pricingResult.totalRWF)}</Text>
+          <Text style={styles.totalLabel}>{numericPrice > 0 ? 'Agaciro gashingiye ku giciro winjije' : 'Igiciro ntikiragenzurwa'}</Text>
+          <Text style={styles.totalValue}>{numericPrice > 0 ? formatRWF(pricingResult.totalRWF) : '—'}</Text>
           <Text style={styles.totalFormula}>{pricingResult.formula}</Text>
-          <View style={styles.totalHintRow}><View style={styles.totalHintDot} /><Text style={styles.totalHint}>{hasReference ? 'Calculated • Premium' : 'Estimated • Add reference for exact'}</Text></View>
+          <View style={styles.totalHintRow}><View style={styles.totalHintDot} /><Text style={styles.totalHint}>{numericPrice > 0 ? 'User-entered unit price' : 'Enter a verified or user-provided unit price'}</Text></View>
         </GlassCard>
 
         {/* Confidence + review */}
@@ -310,7 +296,7 @@ const styles = StyleSheet.create({
   countButtonPrimary: {width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)'},
   countButtonText: {fontSize: 22, color: '#EAF2FD', fontWeight: '700'},
   countCenter: {alignItems: 'center', marginHorizontal: 24, minWidth: 110},
-  countNumber: {fontSize: 40, color: '#F1F6FF', fontWeight: '900', letterSpacing: -1},
+  countInput: {minWidth: 96, color: '#F1F6FF', fontSize: 40, fontWeight: '900', textAlign: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)', padding: 0},
   quickAdjust: {flexDirection: 'row', justifyContent: 'center', marginTop: 16},
   quickBtn: {paddingHorizontal: 14, paddingVertical: 7, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 20, marginHorizontal: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)'},
   quickBtnGhost: {paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, marginHorizontal: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)'},
@@ -327,16 +313,6 @@ const styles = StyleSheet.create({
   dimField: {flex: 1, marginRight: 8},
   dimLabel: {fontSize: 10, color: '#8FA2BB', fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 6},
   dimInput: {backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: '#F1F6FF', fontSize: 14, fontWeight: '700', textAlign: 'center'},
-  referenceRow: {marginTop: 12},
-  refChip: {paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignSelf: 'flex-start'},
-  refChipActive: {backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.18)'},
-  refText: {fontSize: 12, color: '#8FA2BB', fontWeight: '600'},
-  refTextActive: {color: '#6EE7B7'},
-  refOptions: {flexDirection: 'row', marginTop: 8, flexWrap: 'wrap'},
-  refMini: {paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', marginRight: 6, marginTop: 6},
-  refMiniActive: {backgroundColor: 'rgba(59,130,246,0.12)', borderColor: 'rgba(96,165,250,0.18)'},
-  refMiniText: {fontSize: 11, color: '#8FA2BB', fontWeight: '600'},
-  refMiniTextActive: {color: '#93C5FD'},
   estimatedHint: {fontSize: 11, color: '#FCD34D', marginTop: 8, lineHeight: 14},
   calcBox: {marginTop: 12, padding: 10, borderRadius: 12, backgroundColor: 'rgba(59,130,246,0.08)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.12)'},
   calcLabel: {fontSize: 11, color: '#EAF2FD', fontWeight: '600'},
@@ -350,7 +326,6 @@ const styles = StyleSheet.create({
   currencySymbol: {fontSize: 11, color: '#8FA2BB', marginRight: 6, fontWeight: '800'},
   priceInput: {flex: 1, fontSize: 18, color: '#F1F6FF', paddingVertical: 12, fontWeight: '800'},
   priceSuffix: {fontSize: 11, color: '#8FA2BB', fontWeight: '600'},
-  priceChips: {flexDirection: 'row', marginTop: 10, flexWrap: 'wrap'},
   totalLabel: {fontSize: 10, color: '#8FA2BB', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '700'},
   totalValue: {fontSize: 30, fontWeight: '900', color: '#93C5FD', textAlign: 'center', marginTop: 6, letterSpacing: -0.6},
   totalFormula: {fontSize: 11, color: '#8FA2BB', textAlign: 'center', marginTop: 6, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'},

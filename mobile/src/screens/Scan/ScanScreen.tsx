@@ -1,5 +1,5 @@
 import {usePhotoOutput} from 'react-native-vision-camera';
-import React, {useState, useRef, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect} from 'react';
 import {
   View,
   Text,
@@ -73,11 +73,11 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
   };
 
   const capturePhoto = useCallback(async () => {
-    const cameraIsReady = Boolean(hasCameraPermission) && Boolean(device) && Boolean(photoOutput) && !isCapturing;
-    if (loading || isCapturing || !cameraIsReady) {
-      if (!cameraIsReady) {
-        Alert.alert('Camera ntiraboneka', 'Emeza ko permission yatanzwe kandi camera iri kuri screen.');
-      }
+    if (loading || isCapturing) return;
+    const hasCamera = Boolean(device && photoOutput && hasCameraPermission);
+    const cameraIsReady = Boolean(hasCameraPermission && cameraMounted && cameraReady);
+    if (hasCamera && !cameraIsReady) {
+      Alert.alert('Camera ntiraboneka', 'Tegereza camera yitegure mbere yo gufata ifoto.');
       return;
     }
     setLoading(true);
@@ -102,20 +102,20 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
       }
       setCapturedImage(uri);
 
-      const quality = checkPhotoQuality({requireReference: true, imageUri: uri});
-      if (!quality.ok) {
+      const quality = checkPhotoQuality({imageUri: uri});
+      if (quality.status === 'INVALID') {
         setQualityWarning(quality.message);
-        Alert.alert('Ifoto ntisobanutse neza.', quality.recommendation || 'Ongera ufate ifoto.');
         const empty: BoardDetectionResult = {count: 0, confidence: 0, boards: [], timestamp: Date.now()};
         setDetectionResult(empty);
         navigation.navigate('ScanResult', {result: empty, imageUri: uri, qualityWarning: quality.message});
         return;
       }
 
-      if (quality.needsReference) {
-        setQualityWarning('Ibipimo ni ibyagereranyijwe — nta rurerure rugaragaye.');
-      }
-      await runDetection(uri);
+      const warning = quality.status === 'NEEDS_REVIEW'
+        ? 'Ubwiza bw\'ifoto ntibupimwe kuri iki gikoresho. Reba ibisubizo mbere yo kubika.'
+        : null;
+      setQualityWarning(warning);
+      await runDetection(uri, warning);
     } catch (error) {
       const msg = error instanceof Error ? error.message : t('backendError');
       Alert.alert(t('error'), msg);
@@ -133,43 +133,45 @@ export default function ScanScreen({navigation}: {navigation: {navigate: (s: str
     setCapturedImage(url);
     setLoading(true);
     try {
-      const q = checkPhotoQuality({requireReference: true, imageUri: url});
-      if (q.needsReference) setQualityWarning('Ibipimo byagereranijwe — nta rurerure');
-      await runDetection(url);
+      const q = checkPhotoQuality({imageUri: url});
+      if (q.status === 'INVALID') {
+        const empty: BoardDetectionResult = {count: 0, confidence: 0, boards: [], timestamp: Date.now()};
+        setDetectionResult(empty);
+        setQualityWarning(q.message);
+        navigation.navigate('ScanResult', {result: empty, imageUri: url, qualityWarning: q.message});
+        return;
+      }
+      const warning = q.status === 'NEEDS_REVIEW'
+        ? 'Ubwiza bw\'ifoto ntibupimwe kuri iki gikoresho. Reba ibisubizo mbere yo kubika.'
+        : null;
+      setQualityWarning(warning);
+      await runDetection(url, warning);
     } finally {
       setLoading(false);
     }
   };
 
-  const runDetection = async (imageUri: string) => {
+  const runDetection = async (imageUri: string, initialWarning: string | null = null) => {
     console.log('ANALYSIS_STARTED', imageUri);
     setLoading(true);
     setDetectionResult(null);
     try {
-      if (woodDetectionService.getModelType() === 'none') {
-        const empty: BoardDetectionResult = {count: 0, confidence: 0, boards: [], timestamp: Date.now()};
-        setDetectionResult(empty);
-        setLoading(false);
-        navigation.navigate('ScanResult', {result: empty, imageUri, qualityWarning: 'Nta model ya vision ihari. Shyiramo umubare w\'imbaho wiboneye.'});
-        return;
-      }
       const result = await woodDetectionService.detectBoards(imageUri);
       setDetectionResult(result);
       const compressed = await compressImageUri(imageUri, 1024, 0.75);
       await firebaseService.uploadImage(compressed, `scans/${user?.uid || 'anon'}/${Date.now()}.jpg`).catch(() => {});
       await firebaseService.uploadCameraResult({userId: user?.uid, businessId: user?.businessId, result, imageUri, timestamp: Date.now()}).catch(() => {});
 
-      if (result.analysisStatus === 'rejected' || result.objectType === 'unsupported_object' || result.count === 0 || result.confidence < 0.5) {
-        const warning = result.rejectionReason || 'GANZA ntiyizeye ko iyi foto ari urubaho. Fata ifoto igaragaza urubaho neza.';
+      if (result.count === 0 || result.confidence < 0.5 || result.analysisStatus === 'needs_review' || result.analysisStatus === 'rejected') {
+        const warning = 'Kubara byikora ntibyizewe neza. Twabonye ibisubizo bike; genzura cyangwa wandike umubare nyawo.';
         setQualityWarning(warning);
         navigation.navigate('ScanResult', {result, imageUri, qualityWarning: warning});
         return;
       }
 
-      navigation.navigate('ScanResult', {result, imageUri, qualityWarning: qualityWarning || null});
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : t('noBoardsDetected');
-      Alert.alert(t('error'), msg);
+      navigation.navigate('ScanResult', {result, imageUri, qualityWarning: initialWarning || qualityWarning || null});
+    } catch {
+      const msg = 'Kubara byikora ntibyashobotse. Andika cyangwa ukosore umubare mbere yo kubika.';
       const empty: BoardDetectionResult = {count: 0, confidence: 0, boards: [], timestamp: Date.now()};
       setDetectionResult(empty);
       navigation.navigate('ScanResult', {result: empty, imageUri, qualityWarning: msg});

@@ -197,7 +197,7 @@ export class WoodDetectionService implements IWoodDetectionService {
       const confidence = this.calculateOverallConfidence(boards);
       const objectType = this.classifyWoodObject(valid);
 
-      if (valid.length === 0 || confidence < 0.5 || objectType === 'unsupported_object') {
+      if (valid.length === 0) {
         return {
           count: 0,
           confidence,
@@ -206,6 +206,19 @@ export class WoodDetectionService implements IWoodDetectionService {
           objectType,
           analysisStatus: 'rejected',
           rejectionReason: 'GANZA ntiyizeye ko iyi foto ari urubaho. Fata ifoto igaragaza urubaho neza.',
+          measurementConfidence: confidence,
+        };
+      }
+
+      if (confidence < 0.5 || objectType === 'unsupported_object') {
+        return {
+          count: boards.length,
+          confidence,
+          boards,
+          timestamp: Date.now(),
+          objectType,
+          analysisStatus: 'needs_review',
+          rejectionReason: 'Kubara byikora ntibyizewe neza. Reba cyangwa ukosore umubare wabonetse.',
           measurementConfidence: confidence,
         };
       }

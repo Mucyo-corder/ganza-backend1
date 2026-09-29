@@ -11,7 +11,7 @@ import { FirestoreRepository } from '../src/repositories/firestore.repository.ts
 import type { Business, Sale } from '../src/types/index.ts';
 
 describe('wood verification safeguards', () => {
-  it('rejects low-quality wood capture before financial calculation', () => {
+  it('keeps imperfect but visible wood capture available for review', () => {
     const result = assessImageQuality({
       size: 65000,
       width: 320,
@@ -24,7 +24,8 @@ describe('wood verification safeguards', () => {
     });
 
     expect(result.isReliable).toBe(false);
-    expect(result.issues.some((issue) => issue.toLowerCase().includes('ongere'))).toBe(true);
+    expect(result.status).toBe('NEEDS_REVIEW');
+    expect(result.issues.some((issue) => issue.toLowerCase().includes('review'))).toBe(true);
   });
 
   it('calculates volume deterministically using the configured units', () => {

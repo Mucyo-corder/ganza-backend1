@@ -15,6 +15,7 @@ export type QualityIssue =
   | 'low_visibility';
 
 export interface QualityResult {
+  status: 'GOOD' | 'ACCEPTABLE' | 'NEEDS_REVIEW' | 'INVALID';
   ok: boolean;
   score: number; // 0..1
   issues: QualityIssue[];
@@ -30,29 +31,26 @@ export interface QualityCheckOptions {
 }
 
 /**
- * Lightweight heuristic — expand with native libs (e.g. react-native-blur, brightness).
- * For now we expose the structure and return honest "unknown" when no native analysis.
- * UI must show "Estimated measurement" when reference missing.
+ * Missing native metrics means quality is unknown, not that the photo is invalid.
+ * Keep captured images available for detection and user review.
  */
 export function checkPhotoQuality(opts: QualityCheckOptions = {}): QualityResult {
   const issues: QualityIssue[] = [];
 
-  // Without native analysis we cannot claim blur/darkness — we surface reference warning honestly.
   if (opts.requireReference) {
     issues.push('no_reference');
   }
 
-  // A URI alone is not evidence that the image is sharp or correctly exposed.
-  // Do not let the review screen present unverified computer-vision output.
   if (opts.imageUri && !opts.nativeMetrics) {
     issues.push('low_visibility');
     return {
-      ok: false,
-      score: 0,
+      status: 'NEEDS_REVIEW',
+      ok: true,
+      score: 0.5,
       issues,
       message: 'Ubwiza bw\'ifoto ntibwashoboye kugenzurwa kuri iki gikoresho.',
-      recommendation: 'Ongera ufate ifoto cyangwa ukosore umubare n\'ibipimo ukoresheje ibipimo wapimye.',
-      needsReference: opts.requireReference ?? true,
+      recommendation: 'Reba umubare wabonetse; ushobora kuwukosora mbere yo kubika.',
+      needsReference: Boolean(opts.requireReference),
     };
   }
 
@@ -60,6 +58,7 @@ export function checkPhotoQuality(opts: QualityCheckOptions = {}): QualityResult
 
   if (hasCritical) {
     return {
+      status: 'INVALID',
       ok: false,
       score: 0.35,
       issues,
@@ -71,6 +70,7 @@ export function checkPhotoQuality(opts: QualityCheckOptions = {}): QualityResult
 
   if (issues.includes('no_reference')) {
     return {
+      status: 'ACCEPTABLE',
       ok: true, // allow to continue BUT label as estimated
       score: 0.72,
       issues,
@@ -81,6 +81,7 @@ export function checkPhotoQuality(opts: QualityCheckOptions = {}): QualityResult
   }
 
   return {
+    status: 'GOOD',
     ok: true,
     score: 0.92,
     issues: [],
@@ -111,8 +112,12 @@ export function checkWithNativeMetrics(metrics: NativeQualityMetrics, opts: Qual
   }
   if (opts.requireReference) issues.push('no_reference');
   const score = issues.length === 0 ? 0.93 : issues.includes('blur') || issues.includes('darkness') ? 0.3 : 0.65;
-  const ok = !issues.includes('blur') && !issues.includes('darkness') && !issues.includes('overexposure');
+  const invalid = (metrics.blurScore !== undefined && metrics.blurScore < 0.08)
+    || (metrics.brightness !== undefined && (metrics.brightness < 8 || metrics.brightness > 248));
+  const needsReview = issues.includes('blur') || issues.includes('darkness') || issues.includes('overexposure');
+  const ok = !invalid;
   return {
+    status: invalid ? 'INVALID' : needsReview ? 'NEEDS_REVIEW' : issues.includes('no_reference') ? 'ACCEPTABLE' : 'GOOD',
     ok,
     score,
     issues,

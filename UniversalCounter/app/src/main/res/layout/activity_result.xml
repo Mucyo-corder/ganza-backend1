@@ -45,6 +45,36 @@
             android:textSize="28sp"
             android:textColor="#0F172A" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/decreaseCountButton"
+                android:layout_width="56dp"
+                android:layout_height="48dp"
+                android:contentDescription="Decrease corrected count"
+                android:text="-" />
+
+            <Button
+                android:id="@+id/increaseCountButton"
+                android:layout_width="56dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:contentDescription="Increase corrected count"
+                android:text="+" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="Adjust detected count"
+                android:textColor="#475569"
+                android:textSize="14sp" />
+        </LinearLayout>
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -71,20 +101,78 @@
             android:inputType="textCapWords" />
 
         <EditText
+            android:id="@+id/categoryField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Category (optional)"
+            android:inputType="textCapWords" />
+
+        <EditText
+            android:id="@+id/brandField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Brand (optional)"
+            android:inputType="textCapWords" />
+
+        <EditText
+            android:id="@+id/modelField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Model (optional)"
+            android:inputType="textCapWords" />
+
+        <EditText
             android:id="@+id/quantityField"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:hint="Quantity"
+            android:hint="Correct count"
             android:inputType="number" />
 
-        <EditText
-            android:id="@+id/dimensionsField"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:hint="Dimensions / measurement status"
-            android:inputType="textCapSentences" />
+            android:layout_marginTop="14dp"
+            android:text="Dimensions (enter measurements you took)"
+            android:textColor="#475569"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/lengthField"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Length"
+                android:inputType="numberDecimal|numberSigned" />
+
+            <EditText
+                android:id="@+id/widthField"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:hint="Width"
+                android:inputType="numberDecimal|numberSigned" />
+
+            <EditText
+                android:id="@+id/heightField"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:hint="Height"
+                android:inputType="numberDecimal|numberSigned" />
+        </LinearLayout>
+
+        <Spinner
+            android:id="@+id/dimensionUnitSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
         <EditText
             android:id="@+id/conditionField"
@@ -101,6 +189,19 @@
             android:layout_marginTop="8dp"
             android:hint="Unit price (RWF)"
             android:inputType="numberDecimal" />
+
+        <EditText
+            android:id="@+id/priceSourceField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Price source URL (optional)"
+            android:inputType="textUri" />
+
+        <Button
+            android:id="@+id/marketSearchButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="SEARCH CURRENT RWANDA PRICES" />
 
         <TextView
             android:id="@+id/priceStatusText"
@@ -140,7 +241,7 @@
                 android:layout_height="56dp"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:text="SAVE TO STOCK" />
+                android:text="CONFIRM &amp; SAVE" />
 
             <Button
                 android:id="@+id/retakeButton"

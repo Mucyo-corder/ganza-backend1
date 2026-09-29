@@ -5,6 +5,18 @@ import com.universalcounter.engine.model.CountResult
 private const val UNKNOWN_PRODUCT = "Unclassified item"
 private const val UNKNOWN_CATEGORY = "General"
 
+internal fun resolveVerificationStatus(
+    automaticCount: Int,
+    finalCount: Int,
+    automaticStatus: String,
+    quality: String
+): String = when {
+    finalCount != automaticCount -> "MANUALLY_CORRECTED"
+    finalCount <= 0 || automaticStatus != "VERIFIED" -> "PENDING_VERIFICATION"
+    quality in setOf("NEEDS_REVIEW", "LOW", "UNRELIABLE") -> "PENDING_VERIFICATION"
+    else -> "VERIFIED"
+}
+
 data class ProductAnalysisResult(
     val productName: String = UNKNOWN_PRODUCT,
     val category: String = UNKNOWN_CATEGORY,
@@ -26,7 +38,7 @@ data class ProductAnalysisResult(
                 com.universalcounter.engine.model.QualityTier.HIGH -> "HIGH"
                 com.universalcounter.engine.model.QualityTier.MEDIUM -> "MEDIUM"
                 com.universalcounter.engine.model.QualityTier.LOW -> "LOW"
-                com.universalcounter.engine.model.QualityTier.UNRELIABLE -> "UNRELIABLE"
+                com.universalcounter.engine.model.QualityTier.UNRELIABLE -> "NEEDS_REVIEW"
             }
 
             val count = result.count
@@ -34,7 +46,8 @@ data class ProductAnalysisResult(
             val calibration = result.calibration
             val dimensionsLabel = calibration?.displayLabel ?: "Physical dimensions cannot be verified from this photo."
             val summary = when {
-                !reliable -> "I cannot determine this reliably from this photo. Please retake with better lighting and separate overlapping objects."
+                count > 0 && !reliable -> "Kubara byikora ntibyizewe neza. Twabonye ibintu bigaragara, ariko turagusaba kugenzura umubare."
+                count <= 0 -> "Nta kintu cyagaragaye neza. Ushobora kwinjiza umubare wapimye cyangwa ukongera gufata ifoto."
                 count == 1 -> "One visually similar object detected. Exact product type remains uncertain; please confirm."
                 else -> "Detected a group of visually similar objects. Exact product identity remains uncertain unless user confirms."
             }
@@ -46,8 +59,8 @@ data class ProductAnalysisResult(
             }
 
             return ProductAnalysisResult(
-                productName = if (reliable) "Likely product group" else UNKNOWN_PRODUCT,
-                category = if (reliable) "General product" else UNKNOWN_CATEGORY,
+                productName = UNKNOWN_PRODUCT,
+                category = UNKNOWN_CATEGORY,
                 quantity = count,
                 quality = qualityLabel,
                 detectionSummary = summary,
@@ -60,7 +73,7 @@ data class ProductAnalysisResult(
                     "User confirmation required before saving"
                 ),
                 dimensions = dimensionsLabel,
-                userActionHint = if (reliable) "Review the object count and product type before saving." else "Please retake the photo closer, improve lighting, and keep items separated."
+                userActionHint = if (count > 0 && !reliable) "Hindura umubare niba bikenewe, hanyuma ukomeze." else "Review the count and product details before saving, or retake the photo."
             )
         }
     }

@@ -23,10 +23,11 @@ import com.universalcounter.app.R
 import com.universalcounter.app.cv.OpenCvAndroidRuntime
 import com.universalcounter.engine.CountingEngine
 import com.universalcounter.engine.model.CountOptions
-import com.universalcounter.engine.model.QualityTier
 import org.opencv.android.Utils
 import org.opencv.core.Mat
+import org.opencv.imgproc.Imgproc
 import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -108,7 +109,7 @@ class CameraActivity : AppCompatActivity() {
                     pendingPhotoUri = photoUri
                     runOnUiThread {
                         statusText.text = "Processing image locally with Computer Vision"
-                        processCapturedPhoto(photoFile)
+                        cameraExecutor.execute { processCapturedPhoto(photoFile) }
                     }
                 }
 
@@ -122,39 +123,109 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun processCapturedPhoto(photoFile: File) {
+        var captured = Mat()
         try {
             val bitmap = android.graphics.BitmapFactory.decodeFile(photoFile.absolutePath) ?: run {
-                Toast.makeText(this, "Unable to decode the captured photo.", Toast.LENGTH_LONG).show()
+                openManualRecovery(photoFile, "Captured image could not be decoded", PhotoQualityStatus.INVALID)
                 return
             }
-            val mat = Mat()
-            Utils.bitmapToMat(bitmap, mat)
-            val result = CountingEngine().count(mat, CountOptions.DEFAULT)
-            val analysis = ProductAnalysisResult.fromCountingResult(result)
+            val rgba = Mat()
+            Utils.bitmapToMat(bitmap, rgba)
+            bitmap.recycle()
+            if (rgba.channels() == 4) {
+                Imgproc.cvtColor(rgba, captured, Imgproc.COLOR_RGBA2BGR)
+            } else {
+                rgba.copyTo(captured)
+            }
+            rgba.release()
+            val photoQuality = PhotoQualityAssessment.assess(captured)
+            val overlayFile = File(outputDirectory, "${photoFile.nameWithoutExtension}_overlay.png")
+            val automaticCount: Int
+            val overlayPath: String
+            val analysis: ProductAnalysisResult
+            if (photoQuality.status == PhotoQualityStatus.INVALID) {
+                automaticCount = 0
+                overlayPath = ""
+                analysis = ProductAnalysisResult(
+                    quality = "NEEDS_REVIEW",
+                    detectionSummary = "IFOTO NTIYAKORESHWA. Gerageza gufata ifoto ifite urumuri ruri neza kandi ibintu bigaragara.",
+                    userActionHint = "You can enter a count and physical measurements manually, or retake the photo."
+                )
+            } else {
+                val result = CountingEngine().count(captured, CountOptions.DEFAULT)
+                automaticCount = result.count
+                analysis = ProductAnalysisResult.fromCountingResult(result)
+                overlayPath = try {
+                    val overlayBitmap = android.graphics.Bitmap.createBitmap(
+                        result.overlayImage.cols(),
+                        result.overlayImage.rows(),
+                        android.graphics.Bitmap.Config.ARGB_8888
+                    )
+                    Utils.matToBitmap(result.overlayImage, overlayBitmap)
+                    FileOutputStream(overlayFile).use { stream ->
+                        overlayBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+                    }
+                    overlayBitmap.recycle()
+                    overlayFile.absolutePath
+                } catch (overlayError: Exception) {
+                    Log.w("CameraActivity", "Unable to save detection overlay", overlayError)
+                    ""
+                }
+                result.strategyCandidates.forEach { it.mask.release() }
+                result.workingImage.release()
+                result.overlayImage.release()
+            }
             val intent = Intent(this, ResultActivity::class.java).apply {
                 putExtra("photo_path", photoFile.absolutePath)
                 putExtra("count", analysis.quantity)
-                putExtra("quality", analysis.quality)
-                putExtra("status", if (analysis.requiresConfirmation) "PENDING_VERIFICATION" else "VERIFIED")
+                putExtra("automatic_count", automaticCount)
+                putExtra("quality", if (photoQuality.status == PhotoQualityStatus.NEEDS_REVIEW) "NEEDS_REVIEW" else analysis.quality)
+                putExtra("photo_status", photoQuality.status.name)
+                putExtra("status", if (analysis.requiresConfirmation || photoQuality.status == PhotoQualityStatus.NEEDS_REVIEW || photoQuality.status == PhotoQualityStatus.INVALID) "PENDING_VERIFICATION" else "VERIFIED")
                 putExtra("product_name", analysis.productName)
                 putExtra("category", analysis.category)
                 putExtra("detection_summary", analysis.detectionSummary)
                 putExtra("requires_confirmation", analysis.requiresConfirmation)
                 putExtra("quantity_status", analysis.quantityStatus)
                 putExtra("confidence", analysis.confidence)
-                putExtra("dimensions", analysis.dimensions)
+                putExtra("overlay_path", overlayPath)
                 putExtra("user_action_hint", analysis.userActionHint)
-                putExtra("market_status", "OFFLINE")
-                putExtra("market_message", "Current online market price cannot be checked. Enter your own unit price or retake the photo for a better match.")
+                putExtra("market_status", "PRICE_NOT_FOUND")
+                putExtra("market_message", "No verified market-price source is available offline. Enter a price you verified and its source.")
                 putExtra("market_currency", "RWF")
                 putStringArrayListExtra("characteristics", ArrayList(analysis.characteristics))
-                putExtra("reason", result.quality.reasons.joinToString(" | ") { it.userMessage })
+                putExtra("reason", photoQuality.reason)
             }
-            startActivity(intent)
+            runOnUiThread { startActivity(intent) }
         } catch (e: Exception) {
             Log.e("CameraActivity", "Counting failed", e)
-            Toast.makeText(this, "COUNT NOT RELIABLE. Please retake the photo.", Toast.LENGTH_LONG).show()
+            openManualRecovery(
+                photoFile,
+                "Automatic detection needs review. Enter the count manually or retake the photo.",
+                statusAfterAnalysisFailure(imageDecoded = !captured.empty())
+            )
+        } finally {
+            captured.release()
         }
+    }
+
+    private fun openManualRecovery(photoFile: File, message: String, photoStatus: PhotoQualityStatus) {
+        val intent = Intent(this, ResultActivity::class.java).apply {
+            putExtra("photo_path", photoFile.absolutePath)
+            putExtra("count", 0)
+            putExtra("automatic_count", 0)
+            putExtra("quality", "NEEDS_REVIEW")
+            putExtra("photo_status", photoStatus.name)
+            putExtra("status", "PENDING_VERIFICATION")
+            putExtra("product_name", "Unclassified item")
+            putExtra("category", "General")
+            putExtra("detection_summary", message)
+            putExtra("user_action_hint", "Enter the count and any measurements you took, or retake the photo.")
+            putExtra("market_status", "PRICE_NOT_FOUND")
+            putExtra("market_message", "No verified market-price source is available. Enter a price you verified and its source.")
+            putExtra("market_currency", "RWF")
+        }
+        runOnUiThread { startActivity(intent) }
     }
 
     override fun onDestroy() {
