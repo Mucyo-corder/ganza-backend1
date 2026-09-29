@@ -167,18 +167,7 @@ class CameraActivity : AppCompatActivity() {
                 val result = CountingEngine().count(captured, CountOptions.DEFAULT)
                 automaticCount = result.count
                 analysis = ProductAnalysisResult.fromCountingResult(result)
-                scanResult = ProductScanPipeline.fromVisionAnalysis(
-                    imagePath = photoFile.absolutePath,
-                    detectedCount = automaticCount,
-                    detectionQuality = when (result.quality.tier) {
-                        com.universalcounter.engine.model.QualityTier.HIGH -> "HIGH"
-                        com.universalcounter.engine.model.QualityTier.MEDIUM -> "MEDIUM"
-                        com.universalcounter.engine.model.QualityTier.LOW -> "LOW"
-                        com.universalcounter.engine.model.QualityTier.UNRELIABLE -> "NEEDS_REVIEW"
-                    },
-                    productName = "General product",
-                    category = "General"
-                )
+                scanResult = ProductScanPipeline.execute(this@CameraActivity, photoFile)
                 overlayPath = try {
                     val overlayBitmap = android.graphics.Bitmap.createBitmap(
                         result.overlayImage.cols(),
@@ -215,12 +204,12 @@ class CameraActivity : AppCompatActivity() {
                 putExtra("color", scanResult.color)
                 putExtra("material", scanResult.material)
                 putExtra("condition", scanResult.condition)
-                putExtra("detection_summary", analysis.detectionSummary)
-                putExtra("requires_confirmation", analysis.requiresConfirmation)
-                putExtra("quantity_status", analysis.quantityStatus)
-                putExtra("confidence", analysis.confidence)
+                putExtra("detection_summary", scanResult.specificationSummary)
+                putExtra("requires_confirmation", scanResult.identificationStatus != "VERIFIED")
+                putExtra("quantity_status", if (scanResult.quantity > 0) "DETECTED" else "COUNT_REQUIRES_VERIFICATION")
+                putExtra("confidence", scanResult.detectionQuality.toDoubleOrNull() ?: analysis.confidence)
                 putExtra("overlay_path", overlayPath)
-                putExtra("user_action_hint", analysis.userActionHint)
+                putExtra("user_action_hint", scanResult.specificationSummary)
                 putExtra("market_status", scanResult.marketStatus)
                 putExtra("market_message", scanResult.priceMessage)
                 putExtra("market_currency", scanResult.currency)
@@ -230,7 +219,7 @@ class CameraActivity : AppCompatActivity() {
                 putExtra("product_status", scanResult.identificationStatus)
                 putExtra("dimensions", scanResult.dimensions)
                 putStringArrayListExtra("characteristics", ArrayList(listOf(scanResult.specificationSummary, scanResult.dimensions)))
-                putExtra("reason", photoQuality.reason)
+                putExtra("reason", scanResult.logs.joinToString("\n"))
             }
             runOnUiThread { startActivity(intent) }
         } catch (e: Exception) {
